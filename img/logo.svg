@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" style="flex:none; line-height:1">
+  <title>SEC-bench</title>
+  <!-- Shield background -->
+  <path
+    d="M12 2l7 3v6c0 5-3 9-7 11-4-2-7-6-7-11V5l7-3z"
+    fill="#1E88E5"/>
+  <!-- Benchmark bars -->
+  <rect x="8"  y="13" width="2" height="5" fill="#37E1BE"/>
+  <rect x="11" y="11" width="2" height="7" fill="#A569FF"/>
+  <rect x="14" y="9"  width="2" height="9" fill="#1E37FC"/>
+  <!-- Bench top -->
+  <rect x="7" y="18" width="10" height="1" fill="#555" opacity="0.6"/>
+  <!-- Bench legs -->
+  <rect x="8"  y="18" width="1" height="3" fill="#555" opacity="0.6"/>
+  <rect x="15" y="18" width="1" height="3" fill="#555" opacity="0.6"/>
+</svg>

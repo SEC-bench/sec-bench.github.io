@@ -1,0 +1,145 @@
+import { computed, ref, onMounted, watch } from 'vue'
+
+interface ListItem<T> {
+  name: string
+  data: T[]
+}
+
+export interface Result {
+  oss: boolean
+  verified: boolean
+  name: string
+  resolved: number
+  date: string
+  logs: string
+  trajs: string
+  site: string
+  path: string
+  hasReadme: boolean
+  hasLogs: boolean
+  hasTrajs: boolean
+}
+
+interface Item {
+  repository: string
+  time: string
+}
+
+interface Dataset {
+  name: string
+  results: Result[]
+  data: Record<string, Item>
+}
+
+interface Language {
+  name: string
+  data?: Dataset[]
+}
+
+export function useLeaderboard() {
+  const leaderboard = ref<Language[]>()
+
+  const language = ref<string>()
+  const dataset = ref<string>()
+  const model = ref<string>()
+
+  const languageData = computed(() => leaderboard.value?.find(item => item.name === language.value)?.data)
+  const datasetData = computed(() => languageData.value?.find(item => item.name === dataset.value)?.data)
+  const datasetResults = computed(() => languageData.value?.find(item => item.name === dataset.value)?.results)
+  const total = computed(() => Object.keys(languageData.value?.find(item => item.name === dataset.value)?.data || {}).length)
+  const modelData = computed(() => datasetResults.value?.find(item => item.name === model.value))
+
+  watch(leaderboard, (items) => {
+    language.value = items?.[0]?.name
+  })
+
+  watch(languageData, (items) => {
+    dataset.value = items?.[0]?.name
+  })
+
+  watch(datasetResults, (items) => {
+    model.value = items?.[0]?.name
+  })
+
+  onMounted(async () => {
+    const response = await fetch('https://multi-swe-bench.github.io/experiments/leaderboard.json')
+    leaderboard.value = await response.json()
+  })
+
+  return { leaderboard, language, dataset, model, languageData, datasetData, datasetResults, modelData, total }
+}
+
+export function useVisualLeaderboard() {
+  const visual_leaderboard = ref<Language[]>()
+
+  const visual_language = ref<string>()
+  const visual_dataset = ref<string>()
+  const visual_model = ref<string>()
+
+  const visual_languageData = computed(() => visual_leaderboard.value?.find(item => item.name === visual_language.value)?.data)
+  const visual_datasetData = computed(() => visual_languageData.value?.find(item => item.name === visual_dataset.value)?.data)
+  const visual_datasetResults = computed(() => visual_languageData.value?.find(item => item.name === visual_dataset.value)?.results)
+  const visual_total = computed(() => Object.keys(visual_languageData.value?.find(item => item.name === visual_dataset.value)?.data || {}).length)
+  const visual_modelData = computed(() => visual_datasetResults.value?.find(item => item.name === visual_model.value))
+
+  watch(visual_leaderboard, (items) => {
+    visual_language.value = items?.[0]?.name
+  })
+
+  watch(visual_languageData, (items) => {
+    visual_dataset.value = items?.[0]?.name
+  })
+
+  watch(visual_datasetResults, (items) => {
+    visual_model.value = items?.[0]?.name
+  })
+
+  onMounted(async () => {
+    const response = await fetch('https://multi-swe-bench.github.io/experiments/Visual_leaderboard.json')
+    visual_leaderboard.value = await response.json()
+  })
+
+  return { visual_leaderboard, visual_language, visual_dataset, visual_model, visual_languageData, visual_datasetData, visual_datasetResults, visual_modelData, visual_total }
+}
+
+export function useAllLeaderboard(mode: 'Full' | 'Lite' = 'Full') {
+  const tabData = ref<any[]>([]); // Holds the array of tab objects from JSON
+
+  async function loadData() { // Renamed load to loadData for clarity
+    // const remoteUrl = mode === 'Lite'
+    //   ? 'https://raw.githubusercontent.com/multi-swe-bench/experiments/refs/heads/dist/leaderboard-mini.json'
+    //   : 'https://raw.githubusercontent.com/multi-swe-bench/experiments/refs/heads/dist/leaderboard.json';
+
+    // const localUrl = '/data/local-leaderboard-data.json';
+    // const remoteUrl = 'https://raw.githubusercontent.com/lhxxh/exp_secbench/refs/heads/dist/leaderboard-mini.json'
+    const remoteUrl = 'https://raw.githubusercontent.com/SEC-bench/experiments/refs/heads/dist/leaderboard-mini.json'
+
+    try {
+      const response = await fetch(remoteUrl, {
+        headers: { 'Accept-Language': 'en-US' }
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status} while fetching ${remoteUrl}`);
+      }
+      tabData.value = await response.json();
+    } catch (error) {
+      console.error("Failed to load leaderboard data:", error);
+      tabData.value = []; // Fallback to empty data
+    }
+  }
+
+  onMounted(() => {
+    loadData();
+  });
+
+  return {
+    tabData,
+    loadData // Expose loadData if manual refresh is needed
+  };
+}
+
+/*
+function aggregateModelResults(allLeaderboards, allModelResults) {
+  // ... (original aggregation logic) ...
+}
+*/
