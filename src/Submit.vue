@@ -23,7 +23,7 @@
       <div class="content-wrapper header button-group" style="margin-top: 2em">
 
         <!-- Paper-->
-        <a href="https://arxiv.org/abs/2504.02605">
+        <a href="https://arxiv.org/abs/2506.11791">
           <button class="outline">
             <i class="fa fa-paperclip"></i> Paper&nbsp;
           </button>
@@ -42,16 +42,6 @@
             <i class="fa fa-database"></i> Data&nbsp;
           </button>
         </a>
-        <!--       <a href="https://arxiv.org/abs/2504.02605">
-          <button class="outline">
-            <i class="fa fa-paperclip"></i> Paper&nbsp;
-          </button>
-        </a>
-        <a href="https://github.com/multi-swe-bench/multi-swe-bench">
-          <button class="outline">
-            <i class="fab fa-github"></i> Code&nbsp;
-          </button>
-        </a>  -->
         <router-link to="/">
           <button class="outline">
             <i class="fa fa-upload"></i> Home&nbsp;
