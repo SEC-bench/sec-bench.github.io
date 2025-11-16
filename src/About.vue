@@ -11,11 +11,12 @@
       <h3 class="text-title">Citation</h3>
       If you found the <a href="https://sec-bench.github.io">SEC-bench</a> helpful for your work, please cite as follows:
       <div class="text-content">
-      <pre id="citation"><code>@article{lee2025sec,
-  title={SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks},
-  author={Lee, Hwiwon and Zhang, Ziqi and Lu, Hanxiao and Zhang, Lingming},
-  journal={arXiv preprint arXiv:2506.11791},
-  year={2025}
+      <pre id="citation"><code>@inproceedings{lee2025secbench,
+  author    = {Hwiwon Lee and Ziqi Zhang and Hanxiao Lu and Lingming Zhang},
+  booktitle = {The Thirty-ninth Annual Conference on Neural Information Processing Systems},
+  title     = {{SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks}},
+  url       = {https://openreview.net/forum?id=QQhQIqons0},
+  year      = {2025}
 }</code></pre>
       <br />
       <b>Disclaimer:</b> SEC-bench is for research purposes only. Models
