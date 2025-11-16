@@ -11,7 +11,7 @@
       <h3 class="text-title">Citation</h3>
       If you found the <a href="https://sec-bench.github.io">SEC-bench</a> helpful for your work, please cite as follows:
       <div class="text-content">
-      <pre id="citation"><code>@inproceedings{lee2025secbench,
+      <pre id="citation" v-pre><code>@inproceedings{lee2025secbench,
   author    = {Hwiwon Lee and Ziqi Zhang and Hanxiao Lu and Lingming Zhang},
   booktitle = {The Thirty-ninth Annual Conference on Neural Information Processing Systems},
   title     = {{SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks}},
