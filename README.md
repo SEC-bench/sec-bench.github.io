@@ -20,12 +20,13 @@ We express our deepest gratitude to the creators of the [Multi-SWE-bench](https:
 
 If you found [SEC-bench](https://arxiv.org/abs/2506.11791) helpful for your work, please cite as follows:
 
-```
-@article{lee2025sec,
-  title={SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks},
-  author={Lee, Hwiwon and Zhang, Ziqi and Lu, Hanxiao and Zhang, Lingming},
-  journal={arXiv preprint arXiv:2506.11791},
-  year={2025}
+```bibtex
+@inproceedings{lee2025secbench,
+  author    = {Hwiwon Lee and Ziqi Zhang and Hanxiao Lu and Lingming Zhang},
+  booktitle = {The Thirty-ninth Annual Conference on Neural Information Processing Systems},
+  title     = {{SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks}},
+  url       = {https://openreview.net/forum?id=QQhQIqons0},
+  year      = {2025}
 }
 ```
 
