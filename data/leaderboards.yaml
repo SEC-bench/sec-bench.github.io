@@ -119,7 +119,7 @@ leaderboards:
         date: "2025-05-28"
         open_source: false
         verified: true
-        logs_link: "https://github.com/SEC-bench/SEC-bench/tree/main/evaluation/poc-generation/20250528_openhands_claude37sonnet/logs"
+        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/oh_sonnet"
 
       - model: SWE-agent + Claude-3.7-Sonnet
         org: Princeton
@@ -127,7 +127,7 @@ leaderboards:
         date: "2025-05-10"
         open_source: false
         verified: true
-        logs_link: "https://github.com/SEC-bench/SEC-bench/tree/main/evaluation/poc-generation/20250528_sweagent_claude37sonnet/logs"
+        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/swea_sonnet"
 
       - model: Aider + Claude-3.7-Sonnet
         org: Aider
@@ -135,7 +135,7 @@ leaderboards:
         date: "2025-05-28"
         open_source: false
         verified: true
-        logs_link: "https://github.com/SEC-bench/SEC-bench/tree/main/evaluation/poc-generation/20250528_aider_claude37sonnet/logs"
+        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/aider_sonnet"
 
   - display_name: Vulnerability Patching
     info_sections:
@@ -157,7 +157,7 @@ leaderboards:
         date: "2025-05-28"
         open_source: false
         verified: true
-        logs_link: "https://github.com/SEC-bench/SEC-bench/tree/main/evaluation/vulnerability-patching/20250528_openhands_claude37sonnet/logs"
+        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/oh_sonnet"
 
       - model: SWE-agent + Claude-3.7-Sonnet
         org: Princeton
@@ -165,7 +165,7 @@ leaderboards:
         date: "2025-05-10"
         open_source: false
         verified: true
-        logs_link: "https://github.com/SEC-bench/SEC-bench/tree/main/evaluation/vulnerability-patching/20250528_sweagent_claude37sonnet/logs"
+        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/swea_sonnet"
 
       - model: Aider + Claude-3.7-Sonnet
         org: Aider
@@ -173,4 +173,4 @@ leaderboards:
         date: "2025-05-28"
         open_source: false
         verified: true
-        logs_link: "https://github.com/SEC-bench/SEC-bench/tree/main/evaluation/vulnerability-patching/20250528_aider_claude37sonnet/logs"
+        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/aider_sonnet"
