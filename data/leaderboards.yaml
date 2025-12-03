@@ -41,10 +41,10 @@ leaderboards:
       - title: '📣 News'
         content: |
           <ul>
-            <li><span style="font-weight: bold;">[Dec 2025]:</span> <strong>OSS-Fuzz</strong> instances are now integrated into <strong>SEC-bench</strong>!</li>
-            <li><span style="font-weight: bold;">[Sep 2025]:</span> <strong>SEC-bench</strong> has been accepted to <strong>NeurIPS 2025</strong>!</li>
+            <li><span style="font-weight: bold;">[Dec 2025]:</span> <strong><a href="https://issues.oss-fuzz.com/issues" target="_blank">OSS-Fuzz</a></strong> instances are now integrated into SEC-bench!</li>
+            <li><span style="font-weight: bold;">[Sep 2025]:</span> SEC-bench has been accepted to <strong><a href="https://nips.cc/Conferences/2025" target="_blank">NeurIPS 2025</a></strong>!</li>
             <li><span style="font-weight: bold;">[June 2025]:</span> We release the SEC-bench benchmark with <strong>PoC Generation</strong> and <strong>Vulnerability Patching</strong> tasks</li>
-            <li><span style="font-weight: bold;">[June 2025]:</span> SEC-bench dataset is now available on <a href="https://huggingface.co/datasets/SEC-bench/SEC-bench" target="_blank">HuggingFace</a>!</li>
+            <li><span style="font-weight: bold;">[June 2025]:</span> SEC-bench dataset is now available on <strong><a href="https://huggingface.co/datasets/SEC-bench/SEC-bench" target="_blank">HuggingFace</a></strong>!</li>
           </ul>
       - title: '<a href="https://arxiv.org/abs/2506.11791" target="_blank" rel="noopener noreferrer">SEC-bench Overview</a>'
         content: |
