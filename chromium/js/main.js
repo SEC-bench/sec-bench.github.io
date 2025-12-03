@@ -10,19 +10,19 @@ const reports = JSON.parse(sessionStorage.getItem('reports_data') || '[]');
 function groupByYear(reports) {
     const grouped = {};
     const stats = {};
-    
+
     reports.forEach(report => {
         const year = report.year;
         if (!year) return;
-        
+
         if (!grouped[year]) {
             grouped[year] = [];
             stats[year] = { total: 0, rewarded: 0, totalReward: 0 };
         }
-        
+
         grouped[year].push(report);
         stats[year].total++;
-        
+
         if (report.reward && report.reward !== '-' && report.reward !== '(unknown)') {
             stats[year].rewarded++;
             const rewardMatch = report.reward.match(/\d+/);
@@ -31,7 +31,7 @@ function groupByYear(reports) {
             }
         }
     });
-    
+
     return { grouped, stats };
 }
 
@@ -39,7 +39,7 @@ function renderYearNav(years) {
     const yearNav = document.getElementById('yearNav');
     const existingButtons = yearNav.querySelectorAll('.year-badge:not([data-year="all"])');
     existingButtons.forEach(btn => btn.remove());
-    
+
     years.forEach(year => {
         const button = document.createElement('button');
         button.className = 'year-badge';
@@ -52,14 +52,14 @@ function renderYearNav(years) {
 function renderReports(grouped, stats) {
     const content = document.getElementById('content');
     content.innerHTML = '';
-    
+
     const years = Object.keys(grouped).sort((a, b) => b - a);
-    
+
     years.forEach(year => {
         const section = document.createElement('div');
         section.className = 'year-section';
         section.id = `year-${year}`;
-        
+
         const headerRow = document.createElement('div');
         headerRow.className = 'year-header-row';
         headerRow.innerHTML = `
@@ -67,10 +67,10 @@ function renderReports(grouped, stats) {
             <span class="year-total">Total: ${stats[year].total} reports</span>
         `;
         section.appendChild(headerRow);
-        
+
         const tableContainer = document.createElement('div');
         tableContainer.className = 'table-container';
-        
+
         const table = document.createElement('table');
         table.innerHTML = `
             <thead>
@@ -84,14 +84,14 @@ function renderReports(grouped, stats) {
             </thead>
             <tbody></tbody>
         `;
-        
+
         const tbody = table.querySelector('tbody');
         grouped[year].forEach(report => {
             const row = document.createElement('tr');
             row.setAttribute('data-reward', report.reward || '-');
-            
+
             const isUnknownReward = !report.reward || report.reward === '-' || report.reward === '(unknown)';
-            
+
             row.innerHTML = `
                 <td class="bug-id">${report.id || ''}</td>
                 <td class="bug-title">
@@ -103,10 +103,10 @@ function renderReports(grouped, stats) {
                 </td>
                 <td class="date">${report.date || ''}</td>
             `;
-            
+
             tbody.appendChild(row);
         });
-        
+
         tableContainer.appendChild(table);
         section.appendChild(tableContainer);
         content.appendChild(section);
@@ -127,28 +127,28 @@ let activeYear = 'all';
 function filterReports() {
     const searchTerm = searchInput.value.toLowerCase();
     let totalVisibleCount = 0;
-    
+
     document.querySelectorAll('.year-section').forEach(section => {
         const sectionYear = section.id.replace('year-', '');
-        
+
         if (activeYear !== 'all' && sectionYear !== activeYear) {
             section.classList.add('hidden');
             return;
         }
-        
+
         const rows = section.querySelectorAll('tbody tr');
         let visibleInSection = 0;
-        
+
         rows.forEach(row => {
             const id = row.querySelector('.bug-id').textContent.toLowerCase();
             const title = row.querySelector('.bug-title a').textContent.toLowerCase();
             const category = row.querySelector('.category').textContent.toLowerCase();
-            
-            const matchesSearch = !searchTerm || 
-                id.includes(searchTerm) || 
-                title.includes(searchTerm) || 
+
+            const matchesSearch = !searchTerm ||
+                id.includes(searchTerm) ||
+                title.includes(searchTerm) ||
                 category.includes(searchTerm);
-            
+
             if (matchesSearch) {
                 row.classList.remove('hidden');
                 visibleInSection++;
@@ -157,14 +157,14 @@ function filterReports() {
                 row.classList.add('hidden');
             }
         });
-        
+
         if (visibleInSection === 0) {
             section.classList.add('hidden');
         } else {
             section.classList.remove('hidden');
         }
     });
-    
+
     const existingNoResults = document.querySelector('.no-results');
     if (totalVisibleCount === 0 && !existingNoResults) {
         const noResults = document.createElement('div');
@@ -179,57 +179,57 @@ function filterReports() {
 searchInput.addEventListener('input', filterReports);
 
 document.querySelectorAll('.year-badge').forEach(badge => {
-    badge.addEventListener('click', function() {
+    badge.addEventListener('click', function () {
         activeYear = this.getAttribute('data-year');
-        
+
         document.querySelectorAll('.year-badge').forEach(b => {
             b.classList.remove('active');
         });
         this.classList.add('active');
-        
+
         filterReports();
     });
 });
 
 document.querySelectorAll('.sortable').forEach(header => {
-    header.addEventListener('click', function() {
+    header.addEventListener('click', function () {
         const year = this.getAttribute('data-year');
         const yearSection = document.getElementById(`year-${year}`);
         const tbody = yearSection.querySelector('tbody');
         const rows = Array.from(tbody.querySelectorAll('tr'));
-        
+
         const isAsc = this.classList.contains('sorted-asc');
-        
+
         document.querySelectorAll('.sortable').forEach(h => {
             h.classList.remove('sorted-asc', 'sorted-desc');
         });
-        
+
         rows.sort((a, b) => {
             const rewardA = a.querySelector('.reward').textContent.trim();
             const rewardB = b.querySelector('.reward').textContent.trim();
-            
+
             const getRewardValue = (reward) => {
                 if (reward === '-' || reward === '(unknown)') return -1;
                 const match = reward.match(/\d+/);
                 return match ? parseInt(match[0]) : -1;
             };
-            
+
             const valueA = getRewardValue(rewardA);
             const valueB = getRewardValue(rewardB);
-            
+
             if (isAsc) {
                 return valueB - valueA;
             } else {
                 return valueA - valueB;
             }
         });
-        
+
         if (isAsc) {
             this.classList.add('sorted-desc');
         } else {
             this.classList.add('sorted-asc');
         }
-        
+
         rows.forEach(row => tbody.appendChild(row));
     });
 });
@@ -238,7 +238,7 @@ function showNotification(message, isError = false) {
     const notification = document.getElementById('notification');
     notification.textContent = message;
     notification.className = 'notification' + (isError ? ' error' : '');
-    
+
     setTimeout(() => {
         notification.classList.add('hidden');
     }, 3000);
