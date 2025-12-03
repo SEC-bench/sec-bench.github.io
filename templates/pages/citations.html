@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}SEC-bench Citations{% endblock %}
+
+{% block head_extra %}
+<style>
+/* Citation page specific styles */
+.page-header-simple {
+    background: linear-gradient(135deg, #FF5F05 0%, #FFA500 100%);
+    color: white;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.page-header-simple h1 {
+    margin: 0 0 var(--spacing-xs) 0;
+    font-size: var(--font-size-2xl);
+    color: white;
+}
+
+.page-header-simple p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: var(--font-size-base);
+}
+
+.citation-section {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.citation-section h4 {
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: var(--font-size-lg);
+    color: var(--color-text);
+}
+
+.citation-type {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.citation-format-btn {
+    padding: var(--spacing-xs) var(--spacing-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    transition: all var(--transition-fast);
+}
+
+.citation-format-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.citation-format-btn.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+}
+
+.citation-container {
+    position: relative;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+.citation-container pre {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.copy-btn {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    font-family: var(--font-family);
+    transition: all var(--transition-fast);
+}
+
+.copy-btn:hover {
+    background: var(--color-primary-hover);
+}
+
+.copy-btn.copy-success {
+    background: var(--color-success, #10b981);
+}
+
+.display-none {
+    display: none !important;
+}
+
+.display-block {
+    display: block !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <header class="page-header-simple">
+        <h1>Citations</h1>
+        <p>Use the following citations when referencing SEC-bench in your research</p>
+    </header>
+
+    <section class="citation-section" style="margin-top: var(--spacing-xl);">
+        <h4>SEC-bench [NeurIPS 2025]</h4>
+        <div class="citation-type">
+            <button class="citation-format-btn active" data-format="bibtex" data-target="secbench-citation">BibTeX</button>
+            <button class="citation-format-btn" data-format="apa" data-target="secbench-citation">APA</button>
+            <button class="citation-format-btn" data-format="mla" data-target="secbench-citation">MLA</button>
+        </div>
+        <div class="citation-container" id="secbench-citation-bibtex">
+            <button class="copy-btn">Copy</button>
+            <pre>{% raw %}@inproceedings{lee2025secbench,
+    author    = {Hwiwon Lee and Ziqi Zhang and Hanxiao Lu and Lingming Zhang},
+    booktitle = {The Thirty-ninth Annual Conference on Neural Information Processing Systems},
+    title     = {{SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks}},
+    url       = {https://openreview.net/forum?id=QQhQIqons0},
+    year      = {2025}
+}{% endraw %}</pre>
+        </div>
+        
+        <div class="citation-container display-none" id="secbench-citation-apa">
+            <button class="copy-btn">Copy</button>
+            <pre>Lee, H., Zhang, Z., Lu, H., & Zhang, L. (2025). SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks. In The Thirty-ninth Annual Conference on Neural Information Processing Systems. https://openreview.net/forum?id=QQhQIqons0</pre>
+        </div>
+        
+        <div class="citation-container display-none" id="secbench-citation-mla">
+            <button class="copy-btn">Copy</button>
+            <pre>Lee, Hwiwon, et al. "SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks." The Thirty-ninth Annual Conference on Neural Information Processing Systems, 2025.</pre>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="js/citation.js"></script>
+{% endblock %}
+

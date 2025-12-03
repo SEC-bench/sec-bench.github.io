@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Contact SEC-bench Team{% endblock %}
+
+{% block head_extra %}
+<style>
+/* Contact page specific styles */
+.page-header-simple {
+    background: linear-gradient(135deg, #FF5F05 0%, #FFA500 100%);
+    color: white;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.page-header-simple h1 {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    color: white;
+}
+
+.content-section {
+    margin-top: var(--spacing-xl);
+}
+
+.contact-container {
+    max-width: 100%;
+    margin: 0 auto;
+    text-align: center;
+    padding: var(--spacing-xl);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.contact-container p {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.6;
+    color: var(--color-text);
+}
+
+.contact-container a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: var(--font-size-lg);
+}
+
+.contact-container a:hover {
+    text-decoration: underline;
+    color: var(--color-primary-hover);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <header class="page-header-simple">
+        <h1>Contact Us</h1>
+    </header>
+
+    <section class="content-section">
+        <div class="contact-container">
+            <p>For general inquiries about SEC-bench, please email:</p>
+            <p>
+                <a href="mailto:hwiwonl2@illinois.edu">hwiwonl2@illinois.edu</a>
+            </p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+

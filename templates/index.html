@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}SEC-bench Leaderboard{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<header class="page-header">
+    <div class="page-header-content">
+        <img src="img/secbench.png" alt="SEC-bench Logo" class="page-logo">
+        <div class="page-title-container">
+            <h1 class="page-title">{{ website_title }}</h1>
+            {% if website_subtitle %}
+            <p class="page-subtitle">{{ website_subtitle }}</p>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<section class="content-section" id="leaderboard-section">
+    <div class="section-header">
+        <h2>{{ section_title }}</h2>
+        <p class="section-description">
+            {{ section_description | safe }}
+        </p>
+    </div>
+
+    <!-- Leaderboard Tabs -->
+    <div class="tabs">
+        {% for leaderboard in leaderboards %}
+        <button class="tab-button {% if loop.first %}active{% endif %}" data-tab="{{ leaderboard.name }}">
+            {{ leaderboard.display_name }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Leaderboard Content -->
+    <div class="leaderboard-container">
+        {% for leaderboard in leaderboards %}
+        <div class="leaderboard-content" id="{{ leaderboard.name }}-content" {% if not loop.first %}style="display: none;"{% endif %}>
+            <!-- Filters -->
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label class="filter-label">Model Type:</label>
+                    <div class="filter-buttons" id="{{ leaderboard.name }}-type-filter">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="proprietary">Proprietary</button>
+                        <button class="filter-btn" data-filter="open-source">Open Source</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leaderboard Table -->
+            <div class="table-container">
+                <table class="leaderboard-table" id="{{ leaderboard.name }}-table">
+                    <thead>
+                        <tr>
+                            <th class="rank-col">#</th>
+                            <th class="model-col sortable" data-sort="model">Model</th>
+                            <th class="resolved-col sortable active desc" data-sort="resolved">% Resolved</th>
+                            <th class="org-col sortable" data-sort="org">Org</th>
+                            <th class="date-col sortable" data-sort="date">Date</th>
+                            <th class="trajs-col">Logs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in leaderboard.results %}
+                        <tr class="leaderboard-row"
+                            data-type="{% if result.open_source %}open-source{% else %}proprietary{% endif %}"
+                            data-model="{{ result.model }}"
+                            data-resolved="{{ result.resolved }}"
+                            data-org="{{ result.org }}"
+                            data-date="{{ result.date }}"
+                            {% if result.footnote %}data-footnote="{{ result.footnote }}"{% endif %}>
+                            <td class="rank-col"></td>
+                            <td class="model-col">
+                                <div class="model-name">
+                                    <span class="model-name-text">{{ result.model }}</span><span class="footnote-ref" style="display:none;"></span>
+                                    {% if result.open_source %}
+                                    <span class="badge badge-oss" title="Open Source">OSS</span>
+                                    {% endif %}
+                                    {% if result.verified %}
+                                    <span class="badge badge-verified" title="Verified">✓</span>
+                                    {% endif %}
+                                    {% if result.newest %}
+                                    <span class="badge badge-newest" title="Newest">NEW</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="resolved-col">
+                                <div class="resolved-bar-container">
+                                    <div class="resolved-bar" style="width: {{ result.resolved }}%"></div>
+                                    <span class="resolved-text">{{ result.resolved }}%</span>
+                                </div>
+                            </td>
+                            <td class="org-col">
+                                <img class="org-logo" src="{{ result.org | org_logo }}" alt="{{ result.org }}" title="{{ result.org }}">
+                            </td>
+                            <td class="date-col">{{ result.date }}</td>
+                            <td class="trajs-col">
+                                {% if result.logs_link %}
+                                <a href="{{ result.logs_link }}" target="_blank" rel="noopener noreferrer" class="trajs-link" title="View Logs">
+                                    <svg class="external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="no-results" style="display: none;">
+                <p>No models match the selected filters.</p>
+            </div>
+
+            <!-- Footnotes (dynamically populated) -->
+            <div class="leaderboard-footnotes" id="{{ leaderboard.name }}-footnotes"></div>
+
+            <!-- Benchmark Info Sections -->
+            {% if leaderboard.info_sections %}
+                {% for info in leaderboard.info_sections %}
+                <div class="leaderboard-info">
+                    <h3>{{ info.title }}</h3>
+                    <p>{{ info.content }}</p>
+                </div>
+                {% endfor %}
+            {% elif leaderboard.description %}
+                <!-- Fallback to old description format for backward compatibility -->
+                <div class="leaderboard-info">
+                    <h3>{{ leaderboard.display_name }}</h3>
+                    <p>{{ leaderboard.description }}</p>
+                </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- About Section -->
+<section class="content-section" id="about-section" style="display: none;">
+    <div class="about-content">
+        <div class="about-subsection" id="about-code" style="display: none;">
+            {{ content.code | safe }}
+        </div>
+        <div class="about-subsection" id="about-citation" style="display: none;">
+            {{ content.citation | safe }}
+        </div>
+    </div>
+</section>
+
+<!-- Embed leaderboard data as JSON for JavaScript -->
+<script type="application/json" id="leaderboard-data">
+{{ leaderboards | tojson }}
+</script>
+
+{% endblock %}
+

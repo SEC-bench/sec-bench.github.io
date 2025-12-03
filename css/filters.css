@@ -1,0 +1,270 @@
+/* Filter Styles - SEC-bench Theme */
+
+.filter-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--spacing-2xl);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-md);
+    flex-wrap: nowrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-shrink: 0;
+}
+
+.filter-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Filter Buttons */
+.filter-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.25rem var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.filter-btn:hover {
+    background-color: var(--color-bg-tertiary);
+    border-color: var(--color-primary);
+}
+
+.filter-btn.active {
+    color: white;
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* Tag Filter */
+.tag-filter {
+    position: relative;
+}
+
+.tag-select {
+    width: 100%;
+    max-width: 400px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+}
+
+.tag-select:hover {
+    border-color: var(--color-primary);
+}
+
+.tag-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(255, 95, 5, 0.1);
+}
+
+.tag-select option {
+    padding: var(--spacing-sm);
+}
+
+.tag-select option:checked {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+/* Filter Summary */
+.filter-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.filter-summary strong {
+    color: var(--color-text);
+    font-weight: var(--font-weight-semibold);
+}
+
+.clear-filters {
+    margin-left: auto;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    color: var(--color-primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.clear-filters:hover {
+    color: var(--color-primary-hover);
+}
+
+/* Multi-Select Dropdown */
+.multiselect-wrapper {
+    position: relative;
+    width: 100%;
+    min-width: 400px;
+}
+
+.multiselect-toggle {
+    width: 100%;
+    padding: 0.25rem var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all var(--transition-fast);
+}
+
+.multiselect-toggle:hover {
+    border-color: var(--color-primary);
+    background-color: var(--color-bg-secondary);
+}
+
+.multiselect-label {
+    flex: 1;
+    text-align: left;
+}
+
+.multiselect-arrow {
+    transition: transform var(--transition-fast);
+    margin-left: var(--spacing-sm);
+}
+
+.multiselect-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background-color: var(--color-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+}
+
+.multiselect-search-container {
+    padding: var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.multiselect-search {
+    width: 100%;
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    outline: none;
+}
+
+.multiselect-search:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(255, 95, 5, 0.1);
+}
+
+.multiselect-options {
+    overflow-y: auto;
+    max-height: 260px;
+    padding: var(--spacing-xs);
+}
+
+.multiselect-option {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
+    user-select: none;
+}
+
+.multiselect-option:hover {
+    background-color: var(--color-bg-secondary);
+}
+
+.multiselect-option input[type="checkbox"] {
+    margin: 0;
+    margin-right: var(--spacing-sm);
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+.multiselect-option-text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text);
+}
+
+.multiselect-option:first-child {
+    font-weight: var(--font-weight-semibold);
+    border-bottom: 1px solid var(--color-border-light);
+    margin-bottom: var(--spacing-xs);
+    padding-bottom: var(--spacing-sm);
+}
+
+/* Responsive Filters */
+@media (max-width: 768px) {
+    .filter-controls {
+        padding: var(--spacing-md);
+        flex-direction: column;
+    }
+
+    .filter-group {
+        min-width: 100%;
+    }
+
+    .filter-buttons {
+        flex-direction: column;
+    }
+
+    .filter-btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .tag-select {
+        max-width: 100%;
+    }
+}
+

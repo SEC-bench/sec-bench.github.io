@@ -1,0 +1,350 @@
+/* Layout Styles - SEC-bench Theme */
+
+/* Page Header (in content area) */
+.page-header {
+    background: linear-gradient(135deg, #FF5F05 0%, #FFA500 100%);
+    color: white;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-xl);
+    font-family: var(--font-family);
+}
+
+.page-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-lg);
+}
+
+.page-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.page-title-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.page-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    margin: 0;
+    color: white;
+    font-family: var(--font-family);
+}
+
+.page-subtitle {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    margin: 0;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.4;
+    font-family: var(--font-family);
+}
+
+/* Footer */
+.footer {
+    background-color: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border);
+    padding: var(--spacing-xl) var(--spacing-2xl);
+    margin-left: 250px;
+    font-family: var(--font-family);
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.footer-links {
+    display: flex;
+    gap: var(--spacing-lg);
+}
+
+.footer-links a {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-medium);
+}
+
+.footer-links a:hover {
+    color: var(--color-primary);
+}
+
+/* Content Wrapper for standalone pages */
+.content-wrapper {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+}
+
+/* Sections */
+.content-section {
+    margin-bottom: var(--spacing-3xl);
+}
+
+.section-header {
+    margin-bottom: var(--spacing-xs);
+}
+
+.section-header h2 {
+    margin-bottom: 0;
+    font-size: var(--font-size-2xl);
+}
+
+.section-description {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-base);
+}
+
+/* About Section Content */
+.about-content {
+    max-width: 900px;
+}
+
+.about-subsection h1 {
+    font-size: var(--font-size-2xl);
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-text);
+}
+
+.about-subsection h2 {
+    font-size: var(--font-size-xl);
+    margin-top: var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
+    color: var(--color-text);
+}
+
+.about-subsection h3 {
+    font-size: var(--font-size-lg);
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    color: var(--color-text);
+}
+
+.about-subsection p {
+    margin-bottom: var(--spacing-md);
+    line-height: var(--line-height-relaxed);
+}
+
+.about-subsection ul,
+.about-subsection ol {
+    margin-left: var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
+}
+
+.about-subsection li {
+    margin-bottom: var(--spacing-sm);
+    line-height: var(--line-height-relaxed);
+}
+
+.about-subsection code {
+    background-color: var(--color-bg-tertiary);
+    padding: 0.125rem 0.375rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875em;
+}
+
+.about-subsection pre {
+    background-color: var(--color-bg-tertiary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    margin-bottom: var(--spacing-md);
+}
+
+.about-subsection pre code {
+    background: none;
+    padding: 0;
+}
+
+.about-subsection a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.about-subsection a:hover {
+    text-decoration: underline;
+}
+
+/* Card-style sections for Code and Citation pages */
+#about-code,
+#about-citation {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+#about-code h2,
+#about-citation h2 {
+    background: linear-gradient(135deg, #FF5F05 0%, #FFA500 100%);
+    color: white;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    margin: 0;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+}
+
+/* Only code blocks get the card/box styling */
+#about-code pre,
+#about-citation pre {
+    background-color: var(--color-bg-secondary);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    margin: var(--spacing-md) 0;
+    overflow-x: auto;
+}
+
+#about-code pre code,
+#about-citation pre code {
+    background: none;
+    padding: 0;
+}
+
+/* Normal text and lists - no box styling */
+#about-code p,
+#about-citation p,
+#about-code ul,
+#about-citation ul {
+    margin: var(--spacing-md) 0;
+    line-height: var(--line-height-relaxed);
+}
+
+#about-code hr,
+#about-citation hr {
+    border: none;
+    height: 0;
+    margin: var(--spacing-lg) 0;
+}
+
+#about-code strong,
+#about-citation strong {
+    color: var(--color-text);
+    font-weight: var(--font-weight-semibold);
+}
+
+#about-code a,
+#about-citation a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+#about-code a:hover,
+#about-citation a:hover {
+    text-decoration: underline;
+}
+
+/* Indent ALL content under h2 headings in About sections */
+#about-code>*:not(h2),
+#about-citation>*:not(h2) {
+    margin-left: var(--spacing-xl);
+}
+
+/* Keep h2 headings at the left edge */
+#about-code>h2,
+#about-citation>h2 {
+    margin-left: 0;
+}
+
+/* h3 headings also get indented since they're children */
+#about-code h3,
+#about-citation h3 {
+    font-size: var(--font-size-base);
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text);
+}
+
+/* Leaderboard Container */
+.leaderboard-container {
+    background-color: var(--color-bg);
+}
+
+.leaderboard-content {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.leaderboard-info {
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-md);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+}
+
+.leaderboard-info h3 {
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text);
+    font-size: var(--font-size-lg);
+}
+
+.leaderboard-info p {
+    color: var(--color-text-secondary);
+    margin-bottom: 0;
+    font-size: var(--font-size-base);
+}
+
+/* No Results Message */
+.no-results {
+    text-align: center;
+    padding: var(--spacing-3xl);
+    color: var(--color-text-muted);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .page-header {
+        padding: var(--spacing-md);
+    }
+
+    .page-title {
+        font-size: var(--font-size-lg);
+    }
+
+    .page-subtitle {
+        font-size: var(--font-size-sm);
+    }
+
+    .footer {
+        margin-left: 0;
+        padding: var(--spacing-lg);
+    }
+
+    .footer-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .section-header h2 {
+        font-size: var(--font-size-xl);
+    }
+}

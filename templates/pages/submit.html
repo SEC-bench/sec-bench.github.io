@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Submit to SEC-bench{% endblock %}
+
+{% block head_extra %}
+<style>
+/* Submit page specific styles */
+.page-header-simple {
+    background: linear-gradient(135deg, #FF5F05 0%, #FFA500 100%);
+    color: white;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.page-header-simple h1 {
+    margin: 0 0 var(--spacing-xs) 0;
+    font-size: var(--font-size-2xl);
+    color: white;
+}
+
+.page-header-simple p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: var(--font-size-base);
+}
+
+.content-section {
+    margin-top: var(--spacing-xl);
+}
+
+.submit-content {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+}
+
+.submit-content h3 {
+    color: var(--color-text);
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-lg);
+}
+
+.submit-content h3:first-child {
+    margin-top: 0;
+}
+
+.submit-content p {
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    margin-bottom: var(--spacing-md);
+}
+
+.submit-content a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.submit-content a:hover {
+    text-decoration: underline;
+    color: var(--color-primary-hover);
+}
+
+.submit-content hr {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: var(--spacing-lg) 0;
+}
+
+.announcement-container {
+    background: linear-gradient(135deg, rgba(255, 95, 5, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+}
+
+.announcement-container a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper">
+    <header class="page-header-simple">
+        <h1>Submit to SEC-bench Leaderboard</h1>
+        <p>Guidelines for contributing your model's results to the SEC-bench leaderboard.</p>
+    </header>
+
+    <section class="content-section">
+        <div class="submit-content">
+        <p>
+            If you are interested in submitting your model to the SEC-bench Leaderboard, please do the following:
+        </p>
+
+        <ol style="margin: 1rem 0 1.5rem 1.5rem; line-height: 2;">
+            <li>Fork the <a href="https://github.com/SEC-bench/experiments" target="_blank" rel="noopener noreferrer">SEC-bench/experiments</a> repository.</li>
+            <li>Clone the repository. Due to this repository's large diff history, consider using <code style="background: #6366f1; color: white; padding: 0.2em 0.5em; border-radius: 4px;">git clone --depth 1</code> if cloning takes too long.</li>
+            <li>Under the task that you evaluate on (e.g. <code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">evaluation/Patch/</code>), create a new folder with the model name (e.g. <code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">swea_o3-mini</code>).</li>
+            <li>
+                Within the folder, please include the following files:
+                <ul style="margin: 0.5rem 0 0.5rem 1.5rem; line-height: 1.8;">
+                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">report.jsonl</code>: A Report file that summarizes the evaluation results</li>
+                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">metadata.yaml</code>: Metadata for how result is shown on website. Please include the following fields:
+                        <ul style="margin: 0.25rem 0 0.25rem 1.5rem; line-height: 1.6; font-size: 0.9em;">
+                            <li><strong>name</strong>: The name of your leaderboard entry</li>
+                            <li><strong>orgIcon</strong> (optional): URL/link to an icon representing your organization</li>
+                            <li><strong>oss</strong>: <code>true</code> if your system is open-source</li>
+                            <li><strong>site</strong>: URL/link to more information about your system</li>
+                            <li><strong>verified</strong>: <code>false</code> (See below for results verification)</li>
+                            <li><strong>date</strong>: Date of submission</li>
+                        </ul>
+                    </li>
+                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">trajs/</code>: Reasoning trace reflecting how your system solved the problem</li>
+                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">logs/</code>: SEC-bench evaluation artifacts dump</li>
+                </ul>
+            </li>
+            <li>Create a pull request to the <a href="https://github.com/SEC-bench/experiments" target="_blank" rel="noopener noreferrer">SEC-bench/experiments</a> repository with the new folder.</li>
+        </ol>
+
+        <hr />
+
+        <h3>Results Verification</h3>
+        <p>
+            Submissions marked with the <span class="badge badge-verified" style="padding: 0.0625rem 0.25rem; font-size: 0.7rem;">✓</span> badge have been verified by the SEC-bench team through artifact reproduction.
+            We run your agent in our controlled environment to confirm the reported results.
+        </p>
+
+        <h3>Contact</h3>
+        <p>
+            For questions about submissions, evaluation, or the benchmark itself, please contact us at 
+            <a href="mailto:hwiwonl2@illinois.edu">hwiwonl2@illinois.edu</a> or open an issue on GitHub.
+        </p>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
