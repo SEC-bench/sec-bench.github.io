@@ -15,7 +15,7 @@ make install
 # Build the static site
 make build
 
-# Serve locally at http://localhost:8000
+# Serve locally at http://localhost:8888
 make serve
 ```
 
@@ -36,7 +36,6 @@ sec-bench.github.io/
 ├── css/                  # Stylesheets
 ├── js/                   # JavaScript files
 ├── img/                  # Images and logos
-├── chromium/             # Password-protected Chromium section
 └── dist/                 # Built site output (generated)
 ```
 
@@ -115,52 +114,6 @@ footer_links:
     url: https://arxiv.org/abs/2506.11791
 ```
 
-### 4. Updating Citation Information
-
-Edit `content/about.md`:
-
-```markdown
-# About
-
-<!-- Paper URL: https://arxiv.org/abs/2506.11791 -->
-<!-- Code URL: https://github.com/SEC-bench/SEC-bench -->
-<!-- Data URL: https://huggingface.co/datasets/SEC-bench/SEC-bench -->
-
-## Citation
-
-### BibTeX
-
-If you use SEC-bench in your research, please cite our paper:
-```bibtex
-@inproceedings{...}
-```
-
-### Acknowledgement
-
-...
-```
-
-The `<!-- Paper URL: ... -->` and `<!-- Code URL: ... -->` comments are used to populate the sidebar links.
-
-### 5. Adding Info Sections Below the Table
-
-Each leaderboard can have multiple info sections displayed below the results table:
-
-```yaml
-info_sections:
-  - title: '📣 News'
-    content: |
-      <ul>
-        <li><b>Date:</b> News item here</li>
-      </ul>
-      
-  - title: 'About This Benchmark'
-    content: |
-      Plain text or HTML content describing the benchmark.
-      <br><br>
-      Supports line breaks and HTML formatting.
-```
-
 ## Deployment
 
 After making changes:
@@ -186,8 +139,3 @@ The site uses [Inter](https://fonts.google.com/specimen/Inter) font. To change i
 ### Modifying Sidebar Links
 
 Edit `templates/base.html` to add/remove sidebar navigation items.
-
-## Password-Protected Section
-
-The `/chromium` directory contains a password-protected section that uses client-side encryption. Access it via the `/chromium` URI directly. The encrypted data files are stored in `data/chromium/`.
-

@@ -39,10 +39,10 @@ build:
 # Build and serve locally
 serve: build
 	@echo ""
-	@echo "Starting local server at http://localhost:8787"
+	@echo "Starting local server at http://localhost:8888"
 	@echo "Press Ctrl+C to stop"
 	@echo ""
-	cd dist && python3 -m http.server 8787
+	cd dist && python3 -m http.server 8888
 
 # Clean build artifacts
 clean:
