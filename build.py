@@ -24,7 +24,7 @@ ORG_LOGOS = {
     'OpenHands': 'https://avatars.githubusercontent.com/u/169105795?s=200&v=4',
     'SWE-agent': 'https://avatars.githubusercontent.com/u/166046056?s=200&v=4',
     'Princeton': 'https://avatars.githubusercontent.com/u/166046056?s=200&v=4',  # SWE-agent is from Princeton
-    'University of Melbourne': 'https://avatars.githubusercontent.com/u/352236?s=200&v=4',  # AgentMem
+    'University of Melbourne': 'https://raw.githubusercontent.com/MichaelFu1998-create/MichaelFu1998-create.github.io/main/img/unimelb_logo.png',  # AgentMem
     'Aider': 'https://avatars.githubusercontent.com/u/172139148?s=48&v=4',
     'Agentless': 'https://avatars.githubusercontent.com/u/104632009?s=200&v=4',  # UIUC
     'UIUC': 'https://avatars.githubusercontent.com/u/104632009?s=200&v=4',
