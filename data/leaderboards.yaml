@@ -151,7 +151,7 @@ leaderboards:
             <li>Generate a correct patch that fixes the vulnerability without breaking functionality</li>
           </ul>
     results:
-      - model: AgentRepair + GPT-5.2
+      - model: AgenticRepair + GPT-5.2
         org: University of Melbourne
         resolved: 75.00
         date: "2026-01-15"
@@ -159,7 +159,7 @@ leaderboards:
         verified: true
         logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/agenticrepair_gpt-5.2"
 
-      - model: AgentRepair + GPT-5-mini
+      - model: AgenticRepair + GPT-5-mini
         org: University of Melbourne
         resolved: 50.00
         date: "2026-01-15"
