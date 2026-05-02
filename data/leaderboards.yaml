@@ -1,5 +1,5 @@
 website_title: SEC-bench Pro
-website_subtitle: Harder project-specific security benchmarks.
+website_subtitle: Can AI agents find vulnerabilities and write PoCs in critical software?
 
 target_tabs:
   - name: v8
