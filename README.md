@@ -104,14 +104,8 @@ section_title: Leaderboard
 # Description text (supports HTML)
 section_description: 'Performance of LLM agents on security tasks...'
 
-# Footer links
-footer_links:
-  - name: GitHub
-    url: https://github.com/SEC-bench/SEC-bench
-  - name: Data
-    url: https://huggingface.co/datasets/SEC-bench/SEC-bench
-  - name: Paper
-    url: https://arxiv.org/abs/2506.11791
+# Optional footer links (omit or use [] — Paper/Code/Data live in the sidebar)
+footer_links: []
 ```
 
 ## Deployment

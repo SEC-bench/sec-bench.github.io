@@ -5,137 +5,160 @@
 document.addEventListener('DOMContentLoaded', () => {
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
     const sidebarSublinks = document.querySelectorAll('.sidebar-sublink');
-    const aboutCategory = document.getElementById('about-category');
-    const aboutSubmenu = document.getElementById('about-submenu');
+    const benchmarkLinks = document.querySelectorAll('.sidebar-benchmark-link');
     const sections = document.querySelectorAll('.content-section');
-    const aboutSubsections = document.querySelectorAll('.about-subsection');
+    const proToggle = document.getElementById('pro-toggle');
+    const modePanels = document.querySelectorAll('[data-mode-panel]');
 
-    // Handle collapsible About category
-    if (aboutCategory && aboutSubmenu) {
-        aboutCategory.addEventListener('click', (e) => {
-            e.preventDefault();
-            aboutCategory.classList.toggle('collapsed');
-            aboutSubmenu.classList.toggle('collapsed');
+    function setLeaderboardMode(mode) {
+        const isPro = mode === 'pro';
+
+        document.body.setAttribute('data-leaderboard-mode', mode);
+
+        if (proToggle) {
+            proToggle.classList.toggle('active', isPro);
+            proToggle.setAttribute('aria-pressed', String(isPro));
+        }
+
+        modePanels.forEach(panel => {
+            const isActive = panel.getAttribute('data-mode-panel') === mode;
+            panel.hidden = !isActive;
+
+            if (isActive && window.leaderboard) {
+                const defaultLeaderboard = panel.getAttribute('data-default-leaderboard');
+                if (defaultLeaderboard) {
+                    window.leaderboard.switchTab(defaultLeaderboard, { force: true, syncHash: false });
+                }
+            }
         });
     }
 
-    // Handle main sidebar links (Leaderboard)
-    sidebarLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            const href = link.getAttribute('href');
-            const currentPath = window.location.pathname;
-            const currentPage = currentPath.split('/').pop() || 'index.html';
+    function showSection(sectionId) {
+        sections.forEach(section => {
+            const isLeaderboardSection = sectionId === 'leaderboard' && section.classList.contains('leaderboard-section');
+            section.style.display = section.id === `${sectionId}-section` || isLeaderboardSection ? 'block' : 'none';
+        });
+    }
 
-            // If we're on a different page, navigate to index.html
+    function activateMainLeaderboardLink() {
+        sidebarLinks.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('data-section') === 'leaderboard');
+        });
+
+        sidebarSublinks.forEach(link => {
+            if (!link.classList.contains('sidebar-benchmark-link')) {
+                link.classList.remove('active');
+            }
+        });
+    }
+
+    function activateBenchmarkLink(tabName) {
+        benchmarkLinks.forEach(link => {
+            link.classList.toggle('active', link.getAttribute('data-leaderboard') === tabName);
+        });
+    }
+
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', event => {
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
             if (currentPage !== 'index.html' && currentPage !== '') {
-                // Allow normal navigation to index.html
-                return; // Let the browser handle navigation
+                return;
             }
 
-            // Otherwise, handle as in-page navigation
-            e.preventDefault();
-            const section = link.getAttribute('data-section');
+            event.preventDefault();
+            activateMainLeaderboardLink();
+            showSection('leaderboard');
 
-            // Update active state for main links
-            sidebarLinks.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-
-            // Clear active state for sublinks
-            sidebarSublinks.forEach(sl => sl.classList.remove('active'));
-
-            // Show the corresponding section
-            if (section) {
-                showSection(section);
+            if (window.leaderboard) {
+                const firstLeaderboard = window.leaderboard.currentTab();
+                if (firstLeaderboard) {
+                    activateBenchmarkLink(firstLeaderboard);
+                }
             }
         });
     });
 
-    // Handle About subsection links
+    benchmarkLinks.forEach(link => {
+        link.addEventListener('click', event => {
+            const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+            const tabName = link.getAttribute('data-leaderboard');
+
+            if (currentPage !== 'index.html' && currentPage !== '') {
+                return;
+            }
+
+            event.preventDefault();
+            activateMainLeaderboardLink();
+            activateBenchmarkLink(tabName);
+            showSection('leaderboard');
+
+            if (window.leaderboard) {
+                window.leaderboard.switchTab(tabName);
+            }
+        });
+    });
+
     sidebarSublinks.forEach(sublink => {
-        // Skip external links - let them work normally
         if (sublink.classList.contains('sidebar-external-link')) {
             return;
         }
 
-        // Check if this is a link to a separate HTML page (like contact.html, citations.html)
+        if (sublink.classList.contains('sidebar-benchmark-link')) {
+            return;
+        }
+
         const href = sublink.getAttribute('href');
         const isHtmlPage = href && (href.endsWith('.html') || href.startsWith('http') || href.startsWith('//'));
 
-        // If it's a separate page, let it navigate normally
         if (isHtmlPage) {
-            // Update active state when navigating to a page
             sublink.addEventListener('click', () => {
-                // Update active state for all links
-                sidebarLinks.forEach(l => l.classList.remove('active'));
-                sidebarSublinks.forEach(sl => sl.classList.remove('active'));
+                sidebarLinks.forEach(link => link.classList.remove('active'));
+                sidebarSublinks.forEach(link => {
+                    if (!link.classList.contains('sidebar-benchmark-link')) {
+                        link.classList.remove('active');
+                    }
+                });
                 sublink.classList.add('active');
             });
-            return; // Allow normal navigation
         }
-
-        // Otherwise, handle as in-page navigation
-        sublink.addEventListener('click', (e) => {
-            e.preventDefault();
-            const section = sublink.getAttribute('data-section');
-            const subsection = sublink.getAttribute('data-subsection');
-
-            // Update active state for main links
-            sidebarLinks.forEach(l => l.classList.remove('active'));
-
-            // Update active state for sublinks
-            sidebarSublinks.forEach(sl => sl.classList.remove('active'));
-            sublink.classList.add('active');
-
-            // Show About section
-            if (section) {
-                showSection(section);
-            }
-
-            // Show the corresponding subsection
-            if (subsection) {
-                showAboutSubsection(subsection);
-            }
-        });
     });
 
-    function showSection(sectionId) {
-        sections.forEach(section => {
-            if (section.id === `${sectionId}-section`) {
-                section.style.display = 'block';
-            } else {
-                section.style.display = 'none';
-            }
+    if (proToggle) {
+        proToggle.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const currentMode = document.body.getAttribute('data-leaderboard-mode') || 'pro';
+            setLeaderboardMode(currentMode === 'pro' ? 'classic' : 'pro');
         });
     }
 
-    function showAboutSubsection(subsectionName) {
-        aboutSubsections.forEach(subsection => {
-            if (subsection.id === `about-${subsectionName}`) {
-                subsection.style.display = 'block';
-            } else {
-                subsection.style.display = 'none';
-            }
-        });
-    }
-
-    // Initialize: show leaderboard by default, About submenu expanded by default
-    // Check if we're on a separate page (not index.html)
-    const currentPath = window.location.pathname;
-    const currentPage = currentPath.split('/').pop() || 'index.html';
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
     if (currentPage !== 'index.html' && currentPage !== '') {
-        // We're on a separate page, highlight the corresponding link
-        sidebarLinks.forEach(l => l.classList.remove('active'));
-        sidebarSublinks.forEach(sl => {
-            const href = sl.getAttribute('href');
+        sidebarLinks.forEach(link => link.classList.remove('active'));
+        benchmarkLinks.forEach(link => link.classList.remove('active'));
+        sidebarSublinks.forEach(link => {
+            if (link.classList.contains('sidebar-benchmark-link')) {
+                return;
+            }
+
+            const href = link.getAttribute('href');
             if (href && (href === currentPage || href.includes(currentPage))) {
-                sl.classList.add('active');
+                link.classList.add('active');
             } else {
-                sl.classList.remove('active');
+                link.classList.remove('active');
             }
         });
-    } else {
-        // We're on the index page, show leaderboard section
-        showSection('leaderboard');
+        return;
+    }
+
+    showSection('leaderboard');
+    activateMainLeaderboardLink();
+    setLeaderboardMode('pro');
+
+    if (window.leaderboard) {
+        activateBenchmarkLink(window.leaderboard.currentTab());
     }
 });

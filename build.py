@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Static site generator for SEC-bench leaderboard
+Static site generator for the SEC-bench leaderboard site
 Converts YAML data to static HTML using Jinja2 templates
 """
 
 import json
 import shutil
+from datetime import datetime
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 import yaml
@@ -34,8 +35,10 @@ ORG_LOGOS = {
     'OpenAI': 'https://avatars.githubusercontent.com/u/14957082?s=200&v=4',
     'Google': 'https://avatars.githubusercontent.com/u/1342004?s=200&v=4',
     'Gemini': 'https://avatars.githubusercontent.com/u/1342004?s=200&v=4',
-    'Moonshot': 'https://avatars.githubusercontent.com/u/129aboratory?s=200&v=4',
-    'Kimi': 'https://avatars.githubusercontent.com/u/149329654?s=200&v=4',
+    'Moonshot': 'https://avatars.githubusercontent.com/u/129152888?s=200&v=4',
+    'Kimi': 'https://avatars.githubusercontent.com/u/129152888?s=200&v=4',
+    'MiniMax': 'https://avatars.githubusercontent.com/u/194880281?s=200&v=4',
+    'NVIDIA': 'https://avatars.githubusercontent.com/u/1728152?s=200&v=4',
     
     # Cloud/Enterprise
     'Amazon': 'https://avatars.githubusercontent.com/u/2232217?s=200&v=4',
@@ -72,7 +75,11 @@ def load_yaml_data(yaml_file: Path) -> dict:
         data = yaml.safe_load(f)
 
     # Auto-generate 'name' from 'display_name' if not provided
-    for leaderboard in data.get('leaderboards', []):
+    leaderboard_groups = [data.get('leaderboards', [])]
+    if isinstance(data.get('legacy'), dict):
+        leaderboard_groups.append(data['legacy'].get('leaderboards', []))
+
+    for leaderboard in [item for group in leaderboard_groups for item in group]:
         if 'name' not in leaderboard and 'display_name' in leaderboard:
             # Convert to lowercase and replace spaces/special chars with underscores
             display_name = leaderboard['display_name']
@@ -84,8 +91,82 @@ def load_yaml_data(yaml_file: Path) -> dict:
     return data
 
 
+# Sidebar resource URLs when comments omit a mode (Classic still inherits generic <!-- X URL -->).
+RESOURCE_DEFAULTS = {
+    'pro': {
+        'paper_url': None,
+        'code_url': 'https://github.com/SEC-bench/SEC-bench-Pro',
+        'data_url': None,
+    },
+    'classic': {
+        'paper_url': 'https://arxiv.org/abs/2506.11791',
+        'code_url': 'https://github.com/SEC-bench/SEC-bench',
+        'data_url': 'https://huggingface.co/datasets/SEC-bench/SEC-bench',
+    },
+}
+
+_RESOURCE_COMMENT_MISSING = object()
+
+
+def _parse_resource_url_comment(md_text: str, mode: str, label: str):
+    """Return URL string, None if explicitly empty, or _RESOURCE_COMMENT_MISSING."""
+    import re
+
+    pattern = rf'<!--\s*{re.escape(mode)}\s+{re.escape(label)}\s+URL:\s*(.*?)\s*-->'
+    m = re.search(pattern, md_text, flags=re.IGNORECASE | re.DOTALL)
+    if not m:
+        return _RESOURCE_COMMENT_MISSING
+    raw = (m.group(1) or '').strip()
+    return raw if raw else None
+
+
+def _parse_generic_resource_url_comment(md_text: str, label: str):
+    """Legacy <!-- Paper URL: ... --> style (shared fallback for Classic; Pro uses only for Code)."""
+    import re
+
+    pattern = rf'<!--\s*{re.escape(label)}\s+URL:\s*(.*?)\s*-->'
+    m = re.search(pattern, md_text, flags=re.IGNORECASE | re.DOTALL)
+    if not m:
+        return _RESOURCE_COMMENT_MISSING
+    raw = (m.group(1) or '').strip()
+    return raw if raw else None
+
+
+def build_resource_links(md_text: str) -> dict:
+    """Per-mode Paper/Code/Data URLs for the sidebar (None => coming soon in UI)."""
+    pro = {}
+    classic = {}
+    for key_root in ('paper', 'code', 'data'):
+        label = key_root.capitalize()
+        py_key = f'{key_root}_url'
+
+        pv = _parse_resource_url_comment(md_text, 'Pro', label)
+        if pv is not _RESOURCE_COMMENT_MISSING:
+            pro[py_key] = pv
+        elif py_key == 'code_url':
+            gv = _parse_generic_resource_url_comment(md_text, label)
+            if gv is not _RESOURCE_COMMENT_MISSING:
+                pro[py_key] = gv
+            else:
+                pro[py_key] = RESOURCE_DEFAULTS['pro'][py_key]
+        else:
+            pro[py_key] = RESOURCE_DEFAULTS['pro'][py_key]
+
+        cv = _parse_resource_url_comment(md_text, 'Classic', label)
+        if cv is not _RESOURCE_COMMENT_MISSING:
+            classic[py_key] = cv
+        else:
+            gv = _parse_generic_resource_url_comment(md_text, label)
+            if gv is not _RESOURCE_COMMENT_MISSING:
+                classic[py_key] = gv
+            else:
+                classic[py_key] = RESOURCE_DEFAULTS['classic'][py_key]
+
+    return {'pro': pro, 'classic': classic}
+
+
 def load_markdown_content(content_dir: Path) -> dict:
-    """Load about.md and split by H2 sections, extract Paper URL"""
+    """Load about.md and split by H2 sections; extract sidebar resource URLs."""
     import re
 
     md = markdown.Markdown(extensions=['fenced_code', 'tables', 'nl2br'])
@@ -97,26 +178,11 @@ def load_markdown_content(content_dir: Path) -> dict:
         with open(about_file, 'r', encoding='utf-8') as f:
             md_text = f.read()
 
-        # Extract Paper URL from HTML comment
-        paper_url_match = re.search(r'<!-- Paper URL: (.+?) -->', md_text)
-        if paper_url_match:
-            content['paper_url'] = paper_url_match.group(1).strip()
-        else:
-            content['paper_url'] = 'https://arxiv.org/abs/2506.11791'  # Default
-        
-        # Extract Data URL from HTML comment
-        data_url_match = re.search(r'<!-- Data URL: (.+?) -->', md_text)
-        if data_url_match:
-            content['data_url'] = data_url_match.group(1).strip()
-        else:
-            content['data_url'] = 'https://huggingface.co/datasets/SEC-bench/SEC-bench'  # Default
-
-        # Extract Code URL from HTML comment
-        code_url_match = re.search(r'<!-- Code URL: (.+?) -->', md_text)
-        if code_url_match:
-            content['code_url'] = code_url_match.group(1).strip()
-        else:
-            content['code_url'] = 'https://github.com/SEC-bench/SEC-bench'  # Default
+        content['resource_links'] = build_resource_links(md_text)
+        classic_urls = content['resource_links']['classic']
+        content['paper_url'] = classic_urls['paper_url']
+        content['code_url'] = classic_urls['code_url']
+        content['data_url'] = classic_urls['data_url']
 
         # Split by H2 headers (## Title)
         # Pattern: ## Section Title
@@ -125,8 +191,13 @@ def load_markdown_content(content_dir: Path) -> dict:
         # First section is the main About content (before first ##)
         if sections:
             main_content = sections[0].replace('# About\n\n', '')
-            # Remove the Paper URL comment
-            main_content = re.sub(r'<!-- Paper URL: .+? -->\n\n', '', main_content)
+            # Remove resource URL HTML comments from rendered About intro
+            main_content = re.sub(
+                r'<!--\s*(?:Pro|Classic|Paper|Code|Data)\s+URL:\s*.*?-->\s*\n?',
+                '',
+                main_content,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
             if main_content.strip():
                 content['about'] = md.convert(main_content)
                 md.reset()
@@ -149,9 +220,13 @@ def load_markdown_content(content_dir: Path) -> dict:
         content['data'] = ''
         content['code'] = ''
         content['citation'] = ''
-        content['paper_url'] = 'https://arxiv.org/abs/2506.11791'
-        content['code_url'] = 'https://github.com/SEC-bench/SEC-bench'
-        content['data_url'] = 'https://huggingface.co/datasets/SEC-bench/SEC-bench'
+        content['resource_links'] = {
+            'pro': dict(RESOURCE_DEFAULTS['pro']),
+            'classic': dict(RESOURCE_DEFAULTS['classic']),
+        }
+        content['paper_url'] = RESOURCE_DEFAULTS['classic']['paper_url']
+        content['code_url'] = RESOURCE_DEFAULTS['classic']['code_url']
+        content['data_url'] = RESOURCE_DEFAULTS['classic']['data_url']
 
     return content
 
@@ -195,7 +270,7 @@ def copy_chromium_files(src_dir: Path, dest_dir: Path):
 
 def build_site():
     """Main build function"""
-    print("Building SEC-bench leaderboard site...")
+    print("Building SEC-bench Pro leaderboard site...")
 
     # Setup paths
     base_dir = Path(__file__).parent
@@ -209,7 +284,11 @@ def build_site():
     leaderboards_data = load_yaml_data(data_dir / 'leaderboards.yaml')
     markdown_content = load_markdown_content(content_dir)
 
-    print(f"✓ Loaded {len(leaderboards_data['leaderboards'])} leaderboards")
+    leaderboard_count = len(leaderboards_data['leaderboards'])
+    if isinstance(leaderboards_data.get('legacy'), dict):
+        leaderboard_count += len(leaderboards_data['legacy'].get('leaderboards', []))
+
+    print(f"✓ Loaded {leaderboard_count} leaderboards")
     print(f"✓ Loaded {len(markdown_content)} markdown content files")
 
     # Setup Jinja2 environment
@@ -229,12 +308,8 @@ def build_site():
     # Render pages
     print("\nRendering pages...")
 
-    # Extract footer links from YAML, use defaults if not present
-    footer_links = leaderboards_data.get('footer_links', [
-        {'name': 'GitHub', 'url': 'https://github.com/SEC-bench/SEC-bench'},
-        {'name': 'Data', 'url': 'https://huggingface.co/datasets/SEC-bench/SEC-bench'},
-        {'name': 'Paper', 'url': 'https://arxiv.org/abs/2506.11791'}
-    ])
+    # Optional extra links in the site footer (sidebar carries Paper/Code/Data).
+    footer_links = leaderboards_data.get('footer_links') or []
 
     # Extract website title, subtitle, section title and description
     website_title = leaderboards_data.get('website_title', 'SEC-bench Leaderboard')
@@ -249,6 +324,9 @@ def build_site():
         'footer_links': footer_links,
         'website_title': website_title,
         'website_subtitle': website_subtitle,
+        'leaderboard_items': leaderboards_data['leaderboards'],
+        'site_config': leaderboards_data,
+        'current_year': datetime.now().year,
     }
 
     # Render index page

@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}SEC-bench Citations{% endblock %}
+{% block title %}SEC-bench Family Citations{% endblock %}
 
 {% block head_extra %}
 <style>
 /* Citation page specific styles */
 .page-header-simple {
-    background: linear-gradient(135deg, #FF5F05 0%, #FFA500 100%);
+    background: var(--gradient-hero);
     color: white;
     padding: var(--spacing-lg) var(--spacing-xl);
     border-radius: var(--radius-lg);
@@ -126,11 +126,11 @@
 <div class="content-wrapper">
     <header class="page-header-simple">
         <h1>Citations</h1>
-        <p>Use the following citations when referencing SEC-bench in your research</p>
+        <p>Use the SEC-bench paper when referencing the benchmark family, and pair it with the SEC-bench Pro repository.</p>
     </header>
 
     <section class="citation-section" style="margin-top: var(--spacing-xl);">
-        <h4>SEC-bench [NeurIPS 2025]</h4>
+        <h4>SEC-bench benchmark family [NeurIPS 2025]</h4>
         <div class="citation-type">
             <button class="citation-format-btn active" data-format="bibtex" data-target="secbench-citation">BibTeX</button>
             <button class="citation-format-btn" data-format="apa" data-target="secbench-citation">APA</button>
@@ -163,4 +163,3 @@
 {% block scripts_extra %}
 <script src="js/citation.js"></script>
 {% endblock %}
-

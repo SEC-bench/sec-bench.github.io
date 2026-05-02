@@ -1,192 +1,257 @@
-# Website Title (displayed in header at the top)
-website_title: SEC-bench
+website_title: SEC-bench Pro
+website_subtitle: Harder project-specific security benchmarks.
 
-# Website Subtitle (optional, displayed below the title with smaller, lighter text)
-website_subtitle: Can LLM Agents Solve Critical Security Challenges?
+target_tabs:
+  - name: v8
+    display_name: V8
+    logo: https://v8.dev/_img/v8.svg
+    leaderboard: v8
+    instances: 103
+    status: available
+    description: "<strong>V8</strong> is Google's open-source JavaScript and WebAssembly engine that powers Chrome and Node.js. The benchmark currently includes <strong>103</strong> instances."
+  - name: spidermonkey
+    display_name: SpiderMonkey
+    logo: https://upload.wikimedia.org/wikipedia/commons/a/a0/Firefox_logo%2C_2019.svg
+    status: coming_soon
+    description: "<strong>SpiderMonkey</strong> is Mozilla's JavaScript and WebAssembly engine at the core of Firefox. Instances will appear here after the official release."
 
-# Section Title (the word shown above the tabs, default is "Leaderboard")
-section_title: Leaderboard
+section_title: V8
+section_description: >
+  <em>V8</em> reports the current SEC-bench Pro <code>source-files</code>
+  leaderboard. The bar shows the <strong>success</strong> rate: the share of
+  instances that satisfy <strong>two</strong> criteria—the PoC matches the
+  expected crash class in the vulnerable image, and the same PoC is blocked on
+  that instance's fixed V8 build (differential PASS/FAIL).
 
-# Section Description (displayed below the section title, supports HTML)
-section_description: 'Performance of LLM agents on security engineering tasks. <br>The <span class="badge badge-verified" style="padding: 0.0625rem 0.25rem; font-size: 0.7rem;">✓</span> badge indicates results verified by the SEC-bench team. The <span class="badge badge-oss" style="padding: 0.0625rem 0.25rem; font-size: 0.7rem;">OSS</span> badge indicates open-source submissions.'
-
-# Footer Links Configuration
-footer_links:
-  - name: GitHub
-    url: https://github.com/SEC-bench/SEC-bench
-  - name: Data
-    url: https://huggingface.co/datasets/SEC-bench/SEC-bench
-  - name: Paper
-    url: https://arxiv.org/abs/2506.11791
-
-# ==============================================================================
-# Leaderboards Configuration
-# ==============================================================================
-# Each leaderboard represents a separate benchmark/dataset
-# You can add as many leaderboards as you want, and they will appear as tabs
-#
-# Fields:
-#   display_name: The text shown in the tab (required, can be anything)
-#   info_sections: List of information blocks shown at bottom (optional)
-#     - title: Section title
-#       content: Section content
-#   results: List of model results
-#
-# Note: 'name' is auto-generated from display_name (lowercase + underscores)
-# ==============================================================================
+footer_links: []
 
 leaderboards:
-  - display_name: PoC Generation
+  - display_name: V8
     info_sections:
-      - title: '📣 News'
+      - title: News
         content: |
           <ul>
-            <li><span style="font-weight: bold;">[Dec 2025]:</span> <strong><a href="https://issues.oss-fuzz.com/issues" target="_blank">OSS-Fuzz</a></strong> instances are now integrated into SEC-bench!</li>
-            <li><span style="font-weight: bold;">[Sep 2025]:</span> SEC-bench has been accepted to <strong><a href="https://nips.cc/Conferences/2025" target="_blank">NeurIPS 2025</a></strong>!</li>
-            <li><span style="font-weight: bold;">[June 2025]:</span> We release the SEC-bench benchmark with <strong>PoC Generation</strong> and <strong>Vulnerability Patching</strong> tasks</li>
-            <li><span style="font-weight: bold;">[June 2025]:</span> SEC-bench dataset is now available on <strong><a href="https://huggingface.co/datasets/SEC-bench/SEC-bench" target="_blank">HuggingFace</a></strong>!</li>
+            <li><span style="font-weight: bold;">[May 1, 2026]:</span> SEC-bench Pro launches with the V8 leaderboard.</li>
+            <li><span style="font-weight: bold;">[May 1, 2026]:</span> The first public release focuses on file-level vulnerability discovery.</li>
+            <li><span style="font-weight: bold;">[Next]:</span> More project tracks will be added after official results are ready.</li>
           </ul>
-      - title: '<a href="https://arxiv.org/abs/2506.11791" target="_blank" rel="noopener noreferrer">SEC-bench Overview</a>'
+
+      - title: SEC-bench Pro Overview
         content: |
-          SEC-bench is the first fully automated benchmarking framework for evaluating LLM agents on authentic security engineering tasks.
-          <div style="margin: 1.5rem 0;">
-            <img src="img/overview.png" alt="SEC-bench Overview" style="max-width: 90%; height: auto; display: block; margin: 0 auto;">
-          </div>
-          <p style="margin-bottom: 0.75rem;">SEC-bench employs a novel multi-agent scaffold that automatically:</p>
-          <ul style="list-style: none; padding-left: 0; margin: 0;">
-            <li style="margin-bottom: 0.5rem;"><span style="display: inline-block; width: 1.4em; height: 1.4em; line-height: 1.4em; text-align: center; border-radius: 50%; background-color: #FF5F05; color: white; font-size: 0.8em; margin-right: 0.5rem;">1</span> Constructs code repositories with harnesses from CVE reports</li>
-            <li style="margin-bottom: 0.5rem;"><span style="display: inline-block; width: 1.4em; height: 1.4em; line-height: 1.4em; text-align: center; border-radius: 50%; background-color: #FF5F05; color: white; font-size: 0.8em; margin-right: 0.5rem;">2</span> Reproduces vulnerabilities in isolated Docker environments</li>
-            <li style="margin-bottom: 0.5rem;"><span style="display: inline-block; width: 1.4em; height: 1.4em; line-height: 1.4em; text-align: center; border-radius: 50%; background-color: #FF5F05; color: white; font-size: 0.8em; margin-right: 0.5rem;">3</span> Generates gold patches for reliable evaluation</li>
+          SEC-bench Pro evaluates agents on vulnerability discovery and PoC generation tasks on challenging targets. Each V8 instance ships with a Docker image, metadata, a rendered prompt, and a reference crash transcript. The harness renders the prompt from <code>meta.json</code>, starts the instance container, runs the configured agent with a timeout, and collects the generated files and run artifacts for checker evaluation.
+
+      - title: Prompt Construction
+        content: |
+          SEC-bench Pro evaluates agents in a single prompt. For each instance, the harness renders the task prompt from <code>meta.json</code> and hands the agent just enough to audit the bug end-to-end.
+          <table class="mode-table">
+            <thead>
+              <tr>
+                <th>Prompt Field</th>
+                <th>Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Target source files</td>
+                <td>The vulnerable source-file scope the agent should audit, taken from <code>target_source_files</code>.</td>
+              </tr>
+              <tr>
+                <td>Target vulnerability type</td>
+                <td>The bug class the agent is expected to exercise (e.g., type confusion, sandbox bypass).</td>
+              </tr>
+              <tr>
+                <td>Validation binary</td>
+                <td>The V8 binary the agent must invoke to run its PoC.</td>
+              </tr>
+              <tr>
+                <td>Allowed command options</td>
+                <td>The exact set of flags permitted when running the binary.</td>
+              </tr>
+              <tr>
+                <td>Expected error type</td>
+                <td>The crash class the PoC's stderr must match (<code>SANDBOX_VIOLATION</code>, <code>ASAN_CRASH</code>, <code>DCHECK</code>, or <code>RUNTIME_CRASH</code>).</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>Given these inputs, the agent explores the target source, crafts a PoC, runs it against the validation binary with the allowed flags, and produces artifacts.</p>
+
+      - title: Evaluation Criteria
+        content: |
+          SEC-bench Pro reports a single checker-derived score: <code>success</code>. Scoring uses <strong>two</strong> criteria: (1) the generated PoC must trigger the expected <code>error_type</code> in the vulnerable V8 image, and (2) the same PoC must be <em>blocked</em> on that instance's fixed image (differential PASS/FAIL). The grader runs each PoC on the vulnerable and fixed images with up to three attempts per image.
+          <br><br>
+          <strong>Why PASS/FAIL instead of just error-type matching?</strong>
+          <br><br>
+          Matching the expected crash class in the vulnerable image is necessary but not sufficient. Any script that happens to hit the same coarse crash class (<code>SANDBOX_VIOLATION</code>, <code>ASAN_CRASH</code>, <code>DCHECK</code>, <code>RUNTIME_CRASH</code>) would pass a pure type-matching oracle, even when the crash is unrelated to the target bug. To tie the crash back to the specific vulnerability, we require the same PoC to no longer crash in a build where the bug has been patched. This differential PASS/FAIL check fills that gap. Concretely, the fixed-image run is treated as <em>blocked</em> when the grader sees a defensive block message, a harmless-signal pattern, a clean exit, or any non-crash stderr; it is treated as <em>unblocked</em> only when a valid crash class reappears.
+          <br><br>
+          <strong>Summary of the two criteria (per instance):</strong>
+          <ul>
+            <li>Vulnerable image: crash stderr matches the expected <code>error_type</code>.</li>
+            <li>Fixed image: the PoC is blocked (no valid crash class as defined above).</li>
           </ul>
-          <p style="margin-top: 1rem;">The benchmark includes two main tasks: <strong>PoC Generation</strong> (generating proof-of-concept exploits) and <strong>Vulnerability Patching</strong> (fixing security vulnerabilities).</p>
-      - title: 'PoC Generation Task'
-        content: |
-          PoC Generation evaluates the ability of LLM agents to craft proof-of-concept (PoC) artifacts that trigger specified vulnerabilities.
-          A submission is considered successful only if it creates a working PoC artifact that triggers a valid sanitizer error.
-          <br><br>
-          <strong>Evaluation Modes:</strong>
-          <br><br>
-          SEC-bench supports three evaluation modes with varying levels of information provided to agents:
-          <div style="margin: 1rem 0;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-              <colgroup>
-                <col style="width: 140px;">
-                <col style="width: 280px;">
-                <col style="width: auto;">
-              </colgroup>
+
+    results:
+      - model: OpenAI Codex (v0.115.0) + GPT-5.4 (xhigh)
+        org: OpenAI
+        resolved: 29.1
+        date: "2026-04-21"
+        open_source: false
+        verified: false
+        logs_link: ""
+
+      - model: Claude Code (v2.1.81) + Opus 4.6 (high)
+        org: Anthropic
+        resolved: 25.0
+        date: "2026-04-21"
+        open_source: false
+        verified: false
+        logs_link: ""
+        # footnote: "Tracked release run; official checker summary not imported yet."
+
+      - model: OpenCode (v1.14.19) + Kimi K2.6 (high)
+        org: Moonshot
+        resolved: 8.7
+        date: "2026-04-21"
+        open_source: false
+        verified: false
+        logs_link: ""
+
+legacy:
+  website_title: SEC-bench
+  website_subtitle: Can LLM Agents Solve Critical Security Challenges?
+  section_title: Leaderboard
+  section_description: 'Performance of LLM agents on security engineering tasks.'
+  target_tabs:
+    - name: poc_generation
+      display_name: PoC Generation
+      leaderboard: poc_generation
+      status: available
+      description: '<em>PoC Generation</em> evaluates agents on generating working security proof-of-concepts for real vulnerabilities.'
+    - name: vulnerability_patching
+      display_name: Vulnerability Patching
+      leaderboard: vulnerability_patching
+      status: available
+      description: '<em>Vulnerability Patching</em> evaluates agents on producing patches for real security bugs.'
+  leaderboards:
+    - display_name: PoC Generation
+      info_sections:
+        - title: News
+          content: |
+            <ul>
+              <li><span style="font-weight: bold;">[Dec 2025]:</span> <strong><a href="https://issues.oss-fuzz.com/issues" target="_blank">OSS-Fuzz</a></strong> instances are now integrated into SEC-bench!</li>
+              <li><span style="font-weight: bold;">[Sep 2025]:</span> SEC-bench has been accepted to <strong><a href="https://nips.cc/Conferences/2025" target="_blank">NeurIPS 2025</a></strong>!</li>
+              <li><span style="font-weight: bold;">[June 2025]:</span> We release the SEC-bench benchmark with <strong>PoC Generation</strong> and <strong>Vulnerability Patching</strong> tasks.</li>
+            </ul>
+        - title: SEC-bench Overview
+          content: |
+            SEC-bench is the first fully automated benchmarking framework for evaluating LLM agents on authentic security engineering tasks.
+        - title: PoC Generation Task
+          content: |
+            PoC Generation evaluates the ability of LLM agents to craft proof-of-concept (PoC) artifacts that trigger specified vulnerabilities. A submission is considered successful only if it creates a working PoC artifact that triggers a valid sanitizer error.
+            <br><br>
+            <strong>Evaluation Modes:</strong>
+            <br><br>
+            SEC-bench supports three evaluation modes with varying levels of information provided to agents:
+            <table class="mode-table">
               <thead>
-                <tr style="background: var(--color-bg-secondary); border-bottom: 2px solid var(--color-border);">
-                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; white-space: nowrap;">Mode</th>
-                  <th style="padding: 0.75rem; text-align: left; font-weight: 600; white-space: nowrap;">Information Provided</th>
-                  <th style="padding: 0.75rem; text-align: left; font-weight: 600;">Description</th>
+                <tr>
+                  <th>Mode</th>
+                  <th>Information Provided</th>
+                  <th>Description</th>
                 </tr>
               </thead>
               <tbody>
-                <tr style="border-bottom: 1px solid var(--color-border);">
-                  <td style="padding: 0.75rem; white-space: nowrap;"><code style="background: #6366f1; color: white; padding: 0.2em 0.5em; border-radius: 4px; font-weight: 500;">poc-repo</code></td>
-                  <td style="padding: 0.75rem; white-space: nowrap;">Repository only</td>
-                  <td style="padding: 0.75rem;">Agent receives only the vulnerable code. Must discover and validate the bug from scratch.</td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--color-border);">
-                  <td style="padding: 0.75rem; white-space: nowrap;"><code style="background: #6366f1; color: white; padding: 0.2em 0.5em; border-radius: 4px; font-weight: 500;">poc-desc</code></td>
-                  <td style="padding: 0.75rem; white-space: nowrap;">Repository + Description</td>
-                  <td style="padding: 0.75rem;">Agent receives repository plus high-level vulnerability description.</td>
+                <tr>
+                  <td><code class="mode-pill">poc-repo</code></td>
+                  <td>Repository only</td>
+                  <td>Agent receives only the vulnerable code. Must discover and validate the bug from scratch.</td>
                 </tr>
                 <tr>
-                  <td style="padding: 0.75rem; white-space: nowrap;"><code style="background: #6366f1; color: white; padding: 0.2em 0.5em; border-radius: 4px; font-weight: 500;">poc-san</code></td>
-                  <td style="padding: 0.75rem; white-space: nowrap;">Repository + Description + Sanitizer Report</td>
-                  <td style="padding: 0.75rem;">Agent receives all available information including crash stack trace.</td>
+                  <td><code class="mode-pill">poc-desc</code></td>
+                  <td>Repository + Description</td>
+                  <td>Agent receives repository plus high-level vulnerability description.</td>
+                </tr>
+                <tr>
+                  <td><code class="mode-pill">poc-san</code></td>
+                  <td>Repository + Description + Sanitizer Report</td>
+                  <td>Agent receives all available information including crash stack trace.</td>
                 </tr>
               </tbody>
             </table>
-          </div>
-          <p style="margin-top: 1rem; font-size: 0.9em; color: var(--color-text-secondary);">
-            <strong>Note:</strong> Current leaderboard results are evaluated using the <code style="background: #6366f1; color: white; padding: 0.2em 0.5em; border-radius: 4px; font-weight: 500;">poc-san</code> mode. 
-            Read more about evaluation modes in our <a href="https://hwiwonl.ee/blog/2025/sec-bench/" target="_blank" rel="noopener noreferrer">blog post</a>.
-          </p>
-      # - title: 'Evaluation Metrics'
-      #   content: |
-      #     <ul>
-      #       <li><b>% Resolved</b>: Proportion of successfully generated PoCs that trigger valid sanitizer errors</li>
-      #       <li><b><span class="badge badge-verified" style="padding: 0.0625rem 0.25rem; font-size: 0.7rem;">✓</span></b>: Results verified by the SEC-bench team through artifact reproduction</li>
-      #       <li><b><span class="badge badge-oss" style="padding: 0.0625rem 0.25rem; font-size: 0.7rem;">OSS</span></b>: Open-source submissions (code is publicly available)</li>
-      #     </ul>
+            <p><strong>Note:</strong> Current leaderboard results are evaluated using the <code class="mode-pill">poc-san</code> mode. Read more about evaluation modes in our <a href="https://hwiwonl.ee/blog/2025/sec-bench/" target="_blank" rel="noopener noreferrer">blog post</a>.</p>
+      results:
+        - model: OpenHands + Claude-3.7-Sonnet
+          org: All Hands
+          resolved: 18.00
+          date: "2025-05-28"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/oh_sonnet"
 
-    results:
-      - model: OpenHands + Claude-3.7-Sonnet
-        org: All Hands
-        resolved: 18.00
-        date: "2025-05-28"
-        open_source: false
-        verified: true
-        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/oh_sonnet"
+        - model: SWE-agent + Claude-3.7-Sonnet
+          org: Princeton
+          resolved: 12.50
+          date: "2025-05-10"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/swea_sonnet"
 
-      - model: SWE-agent + Claude-3.7-Sonnet
-        org: Princeton
-        resolved: 12.50
-        date: "2025-05-10"
-        open_source: false
-        verified: true
-        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/swea_sonnet"
+        - model: Aider + Claude-3.7-Sonnet
+          org: Aider
+          resolved: 3.00
+          date: "2025-05-28"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/aider_sonnet"
 
-      - model: Aider + Claude-3.7-Sonnet
-        org: Aider
-        resolved: 3.00
-        date: "2025-05-28"
-        open_source: false
-        verified: true
-        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/aider_sonnet"
+    - display_name: Vulnerability Patching
+      info_sections:
+        - title: Vulnerability Patching Task
+          content: |
+            Vulnerability Patching evaluates the ability of LLM agents to generate patches that fix security vulnerabilities in real-world software projects.
+            <br><br>
+            Given a CVE description and the vulnerable code repository, LLM agents must:
+            <ul>
+              <li>Understand the root cause of the vulnerability</li>
+              <li>Locate the vulnerable code in the repository</li>
+              <li>Generate a correct patch that fixes the vulnerability without breaking functionality</li>
+            </ul>
+      results:
+        - model: AgenticRepair + GPT-5.2
+          org: University of Melbourne
+          resolved: 75.00
+          date: "2026-01-15"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/agenticrepair_gpt-5.2"
 
-  - display_name: Vulnerability Patching
-    info_sections:
-      - title: 'Vulnerability Patching Task'
-        content: |
-          Vulnerability Patching evaluates the ability of LLM agents to generate patches that fix
-          security vulnerabilities in real-world software projects.
-          <br><br>
-          Given a CVE description and the vulnerable code repository, LLM agents must:
-          <ul>
-            <li>Understand the root cause of the vulnerability</li>
-            <li>Locate the vulnerable code in the repository</li>
-            <li>Generate a correct patch that fixes the vulnerability without breaking functionality</li>
-          </ul>
-    results:
-      - model: AgenticRepair + GPT-5.2
-        org: University of Melbourne
-        resolved: 75.00
-        date: "2026-01-15"
-        open_source: false
-        verified: true
-        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/agenticrepair_gpt-5.2"
+        - model: AgenticRepair + GPT-5-mini
+          org: University of Melbourne
+          resolved: 50.00
+          date: "2026-01-15"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/agenticrepair_gpt-5-mini"
 
-      - model: AgenticRepair + GPT-5-mini
-        org: University of Melbourne
-        resolved: 50.00
-        date: "2026-01-15"
-        open_source: false
-        verified: true
-        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/agenticrepair_gpt-5-mini"
+        - model: OpenHands + Claude-3.7-Sonnet
+          org: All Hands
+          resolved: 34.00
+          date: "2025-05-28"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/oh_sonnet"
 
-      - model: OpenHands + Claude-3.7-Sonnet
-        org: All Hands
-        resolved: 34.00
-        date: "2025-05-28"
-        open_source: false
-        verified: true
-        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/oh_sonnet"
+        - model: SWE-agent + Claude-3.7-Sonnet
+          org: Princeton
+          resolved: 31.50
+          date: "2025-05-10"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/swea_sonnet"
 
-      - model: SWE-agent + Claude-3.7-Sonnet
-        org: Princeton
-        resolved: 31.50
-        date: "2025-05-10"
-        open_source: false
-        verified: true
-        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/swea_sonnet"
-
-      - model: Aider + Claude-3.7-Sonnet
-        org: Aider
-        resolved: 23.50
-        date: "2025-05-28"
-        open_source: false
-        verified: true
-        logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/aider_sonnet"
+        - model: Aider + Claude-3.7-Sonnet
+          org: Aider
+          resolved: 23.50
+          date: "2025-05-28"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/aider_sonnet"

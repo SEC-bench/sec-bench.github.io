@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}Submit to SEC-bench{% endblock %}
+{% block title %}Submit to SEC-bench Pro{% endblock %}
 
 {% block head_extra %}
 <style>
 /* Submit page specific styles */
 .page-header-simple {
-    background: linear-gradient(135deg, #FF5F05 0%, #FFA500 100%);
+    background: var(--gradient-hero);
     color: white;
     padding: var(--spacing-lg) var(--spacing-xl);
     border-radius: var(--radius-lg);
@@ -71,7 +71,7 @@
 }
 
 .announcement-container {
-    background: linear-gradient(135deg, rgba(255, 95, 5, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%);
+    background: rgba(22, 119, 255, 0.08);
     border: 1px solid var(--color-primary);
     border-radius: var(--radius-md);
     padding: var(--spacing-md) var(--spacing-lg);
@@ -93,48 +93,41 @@
 {% block content %}
 <div class="content-wrapper">
     <header class="page-header-simple">
-        <h1>Submit to SEC-bench Leaderboard</h1>
-        <p>Guidelines for contributing your model's results to the SEC-bench leaderboard.</p>
+        <h1>Submit to SEC-bench Pro</h1>
+        <p>Submission workflow for the SEC-bench Pro V8 leaderboard.</p>
     </header>
 
     <section class="content-section">
         <div class="submit-content">
-        <p>
-            If you are interested in submitting your model to the SEC-bench Leaderboard, please do the following:
-        </p>
+        <div class="announcement-container">
+            <strong>Submission path is lightweight for now.</strong>
+            <span>Send us the checker summary, harness config, and artifact bundle for your V8 <code>source_files</code> run.</span>
+        </div>
+
+        <p>If you want your system added to the SEC-bench Pro leaderboard, please prepare the following:</p>
 
         <ol style="margin: 1rem 0 1.5rem 1.5rem; line-height: 2;">
-            <li>Fork the <a href="https://github.com/SEC-bench/experiments" target="_blank" rel="noopener noreferrer">SEC-bench/experiments</a> repository.</li>
-            <li>Clone the repository. Due to this repository's large diff history, consider using <code style="background: #6366f1; color: white; padding: 0.2em 0.5em; border-radius: 4px;">git clone --depth 1</code> if cloning takes too long.</li>
-            <li>Under the task that you evaluate on (e.g. <code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">evaluation/Patch/</code>), create a new folder with the model name (e.g. <code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">swea_o3-mini</code>).</li>
+            <li>Run the official SEC-bench Pro harness against Chromium V8 in <code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">source_files</code> mode.</li>
+            <li>Keep the exact harness config you used, including the model identifier and reasoning settings.</li>
             <li>
-                Within the folder, please include the following files:
+                Share the following artifacts with the SEC-bench team:
                 <ul style="margin: 0.5rem 0 0.5rem 1.5rem; line-height: 1.8;">
-                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">report.jsonl</code>: A Report file that summarizes the evaluation results</li>
-                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">metadata.yaml</code>: Metadata for how result is shown on website. Please include the following fields:
-                        <ul style="margin: 0.25rem 0 0.25rem 1.5rem; line-height: 1.6; font-size: 0.9em;">
-                            <li><strong>name</strong>: The name of your leaderboard entry</li>
-                            <li><strong>orgIcon</strong> (optional): URL/link to an icon representing your organization</li>
-                            <li><strong>oss</strong>: <code>true</code> if your system is open-source</li>
-                            <li><strong>site</strong>: URL/link to more information about your system</li>
-                            <li><strong>verified</strong>: <code>false</code> (See below for results verification)</li>
-                            <li><strong>date</strong>: Date of submission</li>
-                        </ul>
-                    </li>
-                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">trajs/</code>: Reasoning trace reflecting how your system solved the problem</li>
-                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">logs/</code>: SEC-bench evaluation artifacts dump</li>
+                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">summary.csv</code> or equivalent checker summary covering all 103 V8 instances</li>
+                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">config.toml</code> for the exact run configuration</li>
+                    <li><code style="background: var(--color-bg-secondary); padding: 0.2em 0.4em; border-radius: 4px;">logs/</code> or an artifact directory with reproducible run outputs</li>
+                    <li>Optional metadata such as project URL, organization icon, and whether the system is open-source</li>
                 </ul>
             </li>
-            <li>Create a pull request to the <a href="https://github.com/SEC-bench/experiments" target="_blank" rel="noopener noreferrer">SEC-bench/experiments</a> repository with the new folder.</li>
+            <li>Open an issue or send the bundle to <a href="mailto:hwiwonl2@illinois.edu">hwiwonl2@illinois.edu</a> so the official score import can be verified and published.</li>
         </ol>
 
         <hr />
 
-        <h3>Results Verification</h3>
+        <!-- <h3>Results Verification</h3>
         <p>
             Submissions marked with the <span class="badge badge-verified" style="padding: 0.0625rem 0.25rem; font-size: 0.7rem;">✓</span> badge have been verified by the SEC-bench team through artifact reproduction.
-            We run your agent in our controlled environment to confirm the reported results.
-        </p>
+            We rerun or inspect the reported <code>source_files</code> evaluation to confirm the published result.
+        </p> -->
 
         <h3>Contact</h3>
         <p>
@@ -145,4 +138,3 @@
     </section>
 </div>
 {% endblock %}
-

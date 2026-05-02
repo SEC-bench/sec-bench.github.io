@@ -85,7 +85,7 @@
 .tag-select:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(255, 95, 5, 0.1);
+    box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.1);
 }
 
 .tag-select option {
@@ -200,7 +200,7 @@
 
 .multiselect-search:focus {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px rgba(255, 95, 5, 0.1);
+    box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
 }
 
 .multiselect-options {
@@ -267,4 +267,3 @@
         max-width: 100%;
     }
 }
-
