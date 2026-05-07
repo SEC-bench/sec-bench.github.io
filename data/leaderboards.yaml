@@ -121,7 +121,7 @@ leaderboards:
 
       - model: Claude Code (v2.1.81) + Opus 4.6 (high)
         org: Anthropic
-        resolved: 20.4
+        resolved: 21.4
         date: "2026-04-21"
         open_source: false
         verified: false
@@ -152,7 +152,7 @@ leaderboards:
     results:
       - model: OpenAI Codex (v0.115.0) + GPT-5.4 (xhigh)
         org: OpenAI
-        resolved: 22.5
+        resolved: 23.8
         date: "2026-04-28"
         open_source: false
         verified: false
