@@ -102,7 +102,7 @@
                                 {% if result.details_url %}data-details-url="{{ result.details_url }}" tabindex="0" role="link" aria-label="View run details for {{ result.model }}"{% endif %}
                                 {% if result.status %}data-status="{{ result.status }}"{% endif %}
                                 {% if result.footnote %}data-footnote="{{ result.footnote }}"{% endif %}>
-                                <td class="model-col">
+                                <td class="model-col" data-label="Model">
                                     <div class="model-name">
                                         {% if result.details_url %}
                                         <a class="model-name-text model-detail-link" href="{{ result.details_url }}">{{ result.model }}</a>
@@ -124,7 +124,7 @@
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td class="resolved-col">
+                                <td class="resolved-col" data-label="{% if mode_id == 'pro' %}Success{% else %}Resolved{% endif %}">
                                     {% if result.resolved is not none %}
                                     <div class="score-cell single-score-cell"
                                          title="{% if mode_id == 'pro' %}success{% else %}resolved{% endif %}: {{ result.resolved }}%">
@@ -139,10 +139,11 @@
                                     </div>
                                     {% endif %}
                                 </td>
-                                <td class="org-col">
+                                <td class="org-col" data-label="Org">
                                     <img class="org-logo" src="{{ result.org | org_logo }}" alt="{{ result.org }}" title="{{ result.org }}">
+                                    <span class="org-name-mobile">{{ result.org }}</span>
                                 </td>
-                                <td class="date-col">
+                                <td class="date-col" data-label="Date">
                                     {% if result.date %}
                                     {{ result.date }}
                                     {% else %}

@@ -197,6 +197,8 @@
 
 .table-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
     background-color: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
     border-radius: 0.85rem;
@@ -314,6 +316,10 @@ td.date-col {
     object-fit: cover;
     border: 1px solid var(--color-border);
     background-color: white;
+}
+
+.org-name-mobile {
+    display: none;
 }
 
 .date-col {
@@ -470,9 +476,13 @@ td.date-col {
     grid-template-columns: 1fr;
     gap: var(--spacing-md);
     margin-top: var(--spacing-xl);
+    min-width: 0;
 }
 
 .leaderboard-info {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
     padding: var(--spacing-lg);
     border-radius: var(--radius-lg);
     border: 1px solid var(--color-border);
@@ -488,6 +498,12 @@ td.date-col {
 .leaderboard-info-content p,
 .leaderboard-info-content li {
     color: var(--color-text-secondary);
+    overflow-wrap: break-word;
+}
+
+.leaderboard-info-content {
+    min-width: 0;
+    max-width: 100%;
 }
 
 .leaderboard-info-content p:last-child {
@@ -505,6 +521,7 @@ td.date-col {
 
 .leaderboard-info-content table {
     width: 100%;
+    max-width: 100%;
     border-collapse: collapse;
     margin-top: var(--spacing-md);
     font-size: var(--font-size-sm);
@@ -900,8 +917,29 @@ td.date-col {
 }
 
 @media (max-width: 768px) {
+    .target-tabs {
+        gap: 1rem;
+        margin-right: calc(-1 * var(--spacing-sm));
+        padding-right: var(--spacing-sm);
+        scroll-snap-type: x proximity;
+    }
+
+    .target-tabs .target-tab-button {
+        scroll-snap-align: start;
+        padding-bottom: 0.65rem;
+    }
+
+    .target-tab-logo {
+        height: 24px;
+    }
+
+    .target-description {
+        font-size: var(--font-size-sm);
+        line-height: 1.55;
+    }
+
     .leaderboard-table {
-        font-size: var(--font-size-xs);
+        font-size: var(--font-size-sm);
     }
 
     .leaderboard-table th,
@@ -973,6 +1011,222 @@ td.date-col {
 }
 
 @media (max-width: 520px) {
+    .leaderboard-content > .table-container {
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .leaderboard-table,
+    .leaderboard-table tbody,
+    .leaderboard-table tr,
+    .leaderboard-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .leaderboard-table thead {
+        display: none;
+    }
+
+    .leaderboard-table tbody {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .leaderboard-table tbody tr {
+        padding: 0.85rem;
+        border: 1px solid var(--color-border);
+        border-radius: 0.5rem;
+        background: var(--color-bg-elevated);
+        box-shadow: none;
+    }
+
+    .leaderboard-table tbody tr:hover {
+        background: var(--color-bg-elevated);
+    }
+
+    .leaderboard-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+        min-width: 0;
+        padding: 0.55rem 0;
+        border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .leaderboard-table td:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .leaderboard-table td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        color: var(--color-text-muted);
+        font-size: 0.72rem;
+        font-weight: var(--font-weight-bold);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .leaderboard-table td.model-col {
+        display: block;
+        min-width: 0;
+        width: 100%;
+        padding-top: 0;
+        padding-bottom: 0.7rem;
+    }
+
+    .leaderboard-table td.model-col::before {
+        display: none;
+    }
+
+    .leaderboard-table td.resolved-col,
+    .leaderboard-table td.org-col,
+    .leaderboard-table td.date-col {
+        display: flex;
+        width: 100%;
+    }
+
+    .leaderboard-table td.org-col {
+        justify-content: flex-start;
+    }
+
+    .leaderboard-table td.org-col::before {
+        margin-right: auto;
+    }
+
+    .leaderboard-table td.date-col {
+        color: var(--color-text-secondary);
+    }
+
+    .model-name {
+        align-items: flex-start;
+        gap: 0.45rem;
+    }
+
+    .model-name-text {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        font-size: 0.9rem;
+        line-height: 1.35;
+    }
+
+    .score-cell {
+        flex: 0 1 11rem;
+        max-width: min(11rem, 54vw);
+        --score-bar-height: 28px;
+    }
+
+    .score-bar-label {
+        font-size: 0.76rem;
+    }
+
+    .org-logo {
+        width: 24px;
+        height: 24px;
+    }
+
+    .org-name-mobile {
+        display: inline;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+    }
+
+    .leaderboard-info {
+        padding: 0.95rem;
+        border-radius: 0.5rem;
+    }
+
+    .leaderboard-info-grid {
+        gap: 0.75rem;
+        margin-top: var(--spacing-lg);
+    }
+
+    .leaderboard-info h3 {
+        margin-bottom: 0.8rem;
+        font-size: 1.25rem;
+        line-height: 1.25;
+    }
+
+    .leaderboard-info-content,
+    .leaderboard-info-content p,
+    .leaderboard-info-content li {
+        font-size: 0.95rem;
+        line-height: 1.58;
+    }
+
+    .leaderboard-info-content ul,
+    .leaderboard-info-content ol {
+        margin-left: 1.05rem;
+        margin-top: 0.7rem;
+    }
+
+    .leaderboard-info-content li {
+        margin-bottom: 0.45rem;
+        padding-left: 0.1rem;
+    }
+
+    .leaderboard-info-content code {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .leaderboard-info-content {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .leaderboard-info-content .mode-table {
+        min-width: 0;
+        margin-top: 0.85rem;
+        margin-bottom: var(--spacing-md);
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .leaderboard-info-content .mode-table,
+    .leaderboard-info-content .mode-table tbody,
+    .leaderboard-info-content .mode-table tr,
+    .leaderboard-info-content .mode-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .leaderboard-info-content .mode-table thead {
+        display: none;
+    }
+
+    .leaderboard-info-content .mode-table tr {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .leaderboard-info-content .mode-table tr:first-child {
+        border-top: 1px solid var(--color-border);
+    }
+
+    .leaderboard-info-content .mode-table td,
+    .leaderboard-info-content .mode-table td:first-child,
+    .leaderboard-info-content .mode-table td:nth-child(2) {
+        width: auto;
+        padding: 0;
+        border-bottom: 0;
+        white-space: normal;
+        text-align: left;
+    }
+
+    .leaderboard-info-content .mode-table td:first-child {
+        margin-bottom: 0.25rem;
+        color: var(--color-text);
+        font-weight: var(--font-weight-semibold);
+    }
+
     .run-metrics {
         grid-template-columns: 1fr;
     }
