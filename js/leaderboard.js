@@ -23,16 +23,38 @@ function getFirstLeaderboardName() {
 }
 
 /**
- * Resolve the initial leaderboard from the URL hash when possible.
+ * Resolve the initial leaderboard from clean routes first, with legacy hash cleanup.
  */
 function getInitialLeaderboardName() {
+    const pathLeaderboard = getLeaderboardNameFromPath();
+    if (pathLeaderboard) return pathLeaderboard;
+
     const hash = window.location.hash.replace('#', '').trim();
     const firstLeaderboard = getFirstLeaderboardName();
 
     if (!hash) return firstLeaderboard;
 
     const leaderboardNames = getLeaderboardNames();
-    return leaderboardNames.includes(hash) ? hash : firstLeaderboard;
+    if (!leaderboardNames.includes(hash)) return firstLeaderboard;
+
+    const targetUrl = getTargetUrlForTab(hash);
+    if (targetUrl) {
+        window.history.replaceState(null, '', targetUrl);
+    }
+
+    return hash;
+}
+
+/**
+ * Resolve clean target routes such as /v8 and /spidermonkey.
+ */
+function getLeaderboardNameFromPath() {
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    if (!segments.length) return null;
+
+    const candidate = segments[0];
+    const leaderboardNames = getLeaderboardNames();
+    return leaderboardNames.includes(candidate) ? candidate : null;
 }
 
 /**
@@ -47,6 +69,21 @@ function getLeaderboardNames() {
 }
 
 /**
+ * Return the clean target route for a tab when the tab has one.
+ */
+function getTargetUrlForTab(tab) {
+    const buttons = document.querySelectorAll('.target-tab-button[data-target-url]');
+
+    for (const button of buttons) {
+        if (button.getAttribute('data-tab') === tab) {
+            return button.getAttribute('data-target-url');
+        }
+    }
+
+    return null;
+}
+
+/**
  * Initialize leaderboard functionality
  */
 document.addEventListener('DOMContentLoaded', () => {
@@ -56,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initSorting();
     initUnavailableTabTooltips();
+    initRowNavigation();
 
     // Show each leaderboard sorted by resolved score on initial load.
     if (currentTab) {
@@ -75,6 +113,27 @@ function initTabs() {
 
             const tab = button.getAttribute('data-tab');
             switchTab(tab);
+        });
+    });
+}
+
+/**
+ * Initialize row-level links for runs that have detail pages.
+ */
+function initRowNavigation() {
+    const rows = document.querySelectorAll('.leaderboard-row[data-details-url]');
+
+    rows.forEach(row => {
+        const openDetails = event => {
+            if (event.target.closest('a, button')) return;
+            window.location.href = row.getAttribute('data-details-url');
+        };
+
+        row.addEventListener('click', openDetails);
+        row.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            window.location.href = row.getAttribute('data-details-url');
         });
     });
 }
@@ -148,7 +207,8 @@ function switchTab(tab, options = {}) {
     currentTab = tab;
 
     if (syncHash) {
-        const nextUrl = `${window.location.pathname}${window.location.search}#${tab}`;
+        const targetUrl = getTargetUrlForTab(tab);
+        const nextUrl = targetUrl || `${window.location.pathname}${window.location.search}#${tab}`;
         window.history.replaceState(null, '', nextUrl);
     }
 

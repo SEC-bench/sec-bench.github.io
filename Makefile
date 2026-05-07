@@ -51,4 +51,3 @@ clean:
 	rm -rf *.pyc __pycache__
 	rm -rf .venv/
 	@echo "Done!"
-

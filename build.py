@@ -69,6 +69,55 @@ def org_logo_filter(org_name: str) -> str:
     return ORG_LOGOS.get(org_name, DEFAULT_ORG_LOGO)
 
 
+def auto_name_from_display(display_name: str) -> str:
+    """Convert a display name to the generated leaderboard identifier."""
+    auto_name = display_name.lower().replace(' ', '_').replace('-', '_')
+    return ''.join(c if c.isalnum() or c == '_' else '' for c in auto_name)
+
+
+def format_number_filter(value) -> str:
+    """Format numeric values for display."""
+    if value is None or value == '':
+        return 'N/A'
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+    if number.is_integer():
+        return f'{int(number):,}'
+    return f'{number:,.1f}'
+
+
+def format_currency_filter(value) -> str:
+    """Format a number as USD."""
+    if value is None or value == '':
+        return 'N/A'
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+    if number >= 1000:
+        return f'${number:,.0f}'
+    return f'${number:,.2f}'
+
+
+def format_percent_filter(value) -> str:
+    """Format a percent with one decimal place unless it is whole."""
+    if value is None or value == '':
+        return 'N/A'
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+    return f'{number:.0f}%' if number.is_integer() else f'{number:.1f}%'
+
+
 def load_yaml_data(yaml_file: Path) -> dict:
     """Load leaderboard data from YAML file and auto-generate names"""
     with open(yaml_file, 'r') as f:
@@ -81,14 +130,87 @@ def load_yaml_data(yaml_file: Path) -> dict:
 
     for leaderboard in [item for group in leaderboard_groups for item in group]:
         if 'name' not in leaderboard and 'display_name' in leaderboard:
-            # Convert to lowercase and replace spaces/special chars with underscores
-            display_name = leaderboard['display_name']
-            auto_name = display_name.lower().replace(' ', '_').replace('-', '_')
-            # Remove any non-alphanumeric characters except underscores
-            auto_name = ''.join(c if c.isalnum() or c == '_' else '' for c in auto_name)
-            leaderboard['name'] = auto_name
+            leaderboard['name'] = auto_name_from_display(leaderboard['display_name'])
 
     return data
+
+
+def load_run_details(data_dir: Path) -> dict:
+    """Load compact run-detail JSON files checked into data/run_details."""
+    details_root = data_dir / 'run_details'
+    run_details = {}
+
+    if not details_root.exists():
+        return run_details
+
+    for path in sorted(details_root.glob('*/*.json')):
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                detail = json.load(f)
+        except json.JSONDecodeError as exc:
+            print(f"⚠ Warning: Could not parse {path}: {exc}")
+            continue
+
+        target = detail.get('target')
+        slug = detail.get('slug')
+        if target and slug:
+            run_details[(target, slug)] = detail
+
+    return run_details
+
+
+def available_target_tabs(site_config: dict) -> list:
+    """Return Pro target tabs that have published leaderboard pages."""
+    return [
+        target
+        for target in site_config.get('target_tabs', [])
+        if target.get('status') == 'available' and target.get('leaderboard')
+    ]
+
+
+def target_for_leaderboard(site_config: dict) -> dict:
+    """Map leaderboard names to their Pro target tab config."""
+    mapping = {}
+    for target in available_target_tabs(site_config):
+        mapping[target.get('leaderboard') or target.get('name')] = target
+    return mapping
+
+
+def attach_run_detail_urls(site_config: dict, run_details: dict):
+    """Annotate leaderboard rows with clean detail URLs when detail data exists."""
+    target_by_leaderboard = target_for_leaderboard(site_config)
+
+    for leaderboard in site_config.get('leaderboards', []):
+        target = target_by_leaderboard.get(leaderboard.get('name'))
+        if not target:
+            continue
+
+        scored_results = [
+            result for result in leaderboard.get('results', [])
+            if result.get('resolved') is not None
+        ]
+        ranked_results = sorted(
+            scored_results,
+            key=lambda result: float(result.get('resolved') or 0),
+            reverse=True,
+        )
+        rank_by_id = {id(result): index + 1 for index, result in enumerate(ranked_results)}
+
+        for result in leaderboard.get('results', []):
+            result['rank'] = rank_by_id.get(id(result))
+            details = result.get('details') if isinstance(result.get('details'), dict) else None
+            if not details:
+                continue
+
+            slug = details.get('slug')
+            detail = run_details.get((target['name'], slug))
+            if not slug or not detail:
+                print(f"⚠ Warning: Missing run detail data for {target['name']}/{slug}")
+                continue
+
+            result['details_available'] = True
+            result['details_url'] = f"/{target['name']}/runs/{slug}"
+            result['details_summary'] = detail.get('summary', {})
 
 
 # Sidebar resource URLs when comments omit a mode (Classic still inherits generic <!-- X URL -->).
@@ -283,6 +405,8 @@ def build_site():
     print("\nLoading data...")
     leaderboards_data = load_yaml_data(data_dir / 'leaderboards.yaml')
     markdown_content = load_markdown_content(content_dir)
+    run_details = load_run_details(data_dir)
+    attach_run_detail_urls(leaderboards_data, run_details)
 
     leaderboard_count = len(leaderboards_data['leaderboards'])
     if isinstance(leaderboards_data.get('legacy'), dict):
@@ -290,12 +414,16 @@ def build_site():
 
     print(f"✓ Loaded {leaderboard_count} leaderboards")
     print(f"✓ Loaded {len(markdown_content)} markdown content files")
+    print(f"✓ Loaded {len(run_details)} run detail files")
 
     # Setup Jinja2 environment
     env = Environment(loader=FileSystemLoader(templates_dir))
     
     # Register custom filters
     env.filters['org_logo'] = org_logo_filter
+    env.filters['format_number'] = format_number_filter
+    env.filters['format_currency'] = format_currency_filter
+    env.filters['format_percent'] = format_percent_filter
 
     # Create dist directory
     dist_dir.mkdir(exist_ok=True)
@@ -327,19 +455,66 @@ def build_site():
         'leaderboard_items': leaderboards_data['leaderboards'],
         'site_config': leaderboards_data,
         'current_year': datetime.now().year,
+        'asset_prefix': '',
+        'site_root': '/',
     }
 
-    # Render index page
+    # Render leaderboard pages
     template = env.get_template('index.html')
-    html = template.render(
-        leaderboards=leaderboards_data['leaderboards'],
-        section_title=section_title,
-        section_description=section_description,
-        **common_context
-    )
-    output_file = dist_dir / 'index.html'
-    output_file.write_text(html)
-    print(f"✓ Rendered index.html")
+
+    def render_leaderboard_page(output_file: Path, initial_leaderboard: str | None, asset_prefix: str):
+        html = template.render(
+            leaderboards=leaderboards_data['leaderboards'],
+            section_title=section_title,
+            section_description=section_description,
+            initial_leaderboard=initial_leaderboard,
+            asset_prefix=asset_prefix,
+            **{k: v for k, v in common_context.items() if k != 'asset_prefix'}
+        )
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.write_text(html)
+        print(f"✓ Rendered {output_file.relative_to(dist_dir)}")
+
+    default_leaderboard = leaderboards_data['leaderboards'][0]['name'] if leaderboards_data['leaderboards'] else None
+    render_leaderboard_page(dist_dir / 'index.html', default_leaderboard, '')
+
+    for target in available_target_tabs(leaderboards_data):
+        render_leaderboard_page(
+            dist_dir / target['name'] / 'index.html',
+            target.get('leaderboard') or target.get('name'),
+            '../',
+        )
+
+    # Render run detail pages
+    detail_template = env.get_template('run_detail.html')
+    target_by_name = {target['name']: target for target in available_target_tabs(leaderboards_data)}
+    for leaderboard in leaderboards_data.get('leaderboards', []):
+        target = target_by_name.get(leaderboard.get('name'))
+        if not target:
+            continue
+
+        for result in leaderboard.get('results', []):
+            details = result.get('details') if isinstance(result.get('details'), dict) else None
+            if not details or not result.get('details_available'):
+                continue
+
+            slug = details.get('slug')
+            detail = run_details.get((target['name'], slug))
+            if not detail:
+                continue
+
+            html = detail_template.render(
+                detail=detail,
+                target=target,
+                result=result,
+                page_title=f"{detail['model']} - {target['display_name']}",
+                asset_prefix='../../../',
+                **{k: v for k, v in common_context.items() if k != 'asset_prefix'}
+            )
+            output_file = dist_dir / target['name'] / 'runs' / slug / 'index.html'
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            output_file.write_text(html)
+            print(f"✓ Rendered {output_file.relative_to(dist_dir)}")
 
     # Render additional pages
     additional_pages = ['citations.html', 'contact.html', 'submit.html']

@@ -2,20 +2,29 @@
 
 {% block title %}{{ website_title }}{% endblock %}
 
-{% macro render_leaderboard_panel(mode_id, title, subtitle, section_title, section_description, leaderboards, target_tabs=none) %}
+{% macro render_leaderboard_panel(mode_id, title, subtitle, section_title, section_description, leaderboards, target_tabs=none, default_leaderboard=none) %}
+{% set active_leaderboard = default_leaderboard or leaderboards[0].name %}
 <div class="leaderboard-mode-panel"
      data-mode-panel="{{ mode_id }}"
-     data-default-leaderboard="{{ leaderboards[0].name }}"
+     data-default-leaderboard="{{ active_leaderboard }}"
      {% if mode_id != 'pro' %}hidden{% endif %}>
     <section class="content-section leaderboard-section">
         {% if target_tabs %}
+        {% set description_state = namespace(text=target_tabs[0].description) %}
+        {% for target in target_tabs %}
+            {% set tab_name = target.leaderboard or target.name %}
+            {% if tab_name == active_leaderboard %}
+                {% set description_state.text = target.description %}
+            {% endif %}
+        {% endfor %}
         <div class="target-tabs" role="tablist" aria-label="{{ title }} leaderboards">
             {% for target in target_tabs %}
             {% set tab_name = target.leaderboard or target.name %}
             {% set is_available = target.status == 'available' and target.leaderboard %}
-            <button class="tab-button target-tab-button {% if loop.first %}active{% endif %}"
+            <button class="tab-button target-tab-button {% if tab_name == active_leaderboard %}active{% endif %}"
                     data-tab="{{ tab_name }}"
                     data-target-description="{{ target.description | e }}"
+                    {% if mode_id == 'pro' and is_available %}data-target-url="/{{ target.name }}"{% endif %}
                     {% if not is_available %}data-unavailable="true" data-tooltip="To be released" title="To be released"{% endif %}
                     role="tab"
                     {% if not is_available %}aria-disabled="true"{% endif %}>
@@ -28,7 +37,7 @@
             {% endfor %}
         </div>
         <p class="target-description" data-target-description-container>
-            {{ target_tabs[0].description | safe }}
+            {{ description_state.text | safe }}
         </p>
         {% else %}
         <div class="section-header">
@@ -54,7 +63,7 @@
 
         <div class="leaderboard-container">
             {% for leaderboard in leaderboards %}
-            <div class="leaderboard-content" id="{{ leaderboard.name }}-content" {% if not loop.first %}style="display: none;"{% endif %}>
+            <div class="leaderboard-content" id="{{ leaderboard.name }}-content" {% if leaderboard.name != active_leaderboard %}style="display: none;"{% endif %}>
                 {% set has_open = leaderboard.results | selectattr('open_source') | list | length > 0 %}
                 {% set has_prop = leaderboard.results | rejectattr('open_source') | list | length > 0 %}
 
@@ -79,23 +88,28 @@
                                 <th class="resolved-col sortable active desc" data-sort="resolved">{% if mode_id == 'pro' %}% Success{% else %}% Resolved{% endif %}</th>
                                 <th class="org-col sortable" data-sort="org">Org</th>
                                 <th class="date-col sortable" data-sort="date">Date</th>
-                                <th class="trajs-col">Artifacts</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for result in leaderboard.results %}
-                            <tr class="leaderboard-row"
+                            <tr class="leaderboard-row {% if result.details_url %}leaderboard-row-clickable{% endif %}"
                                 {% if result.resolved is none %}data-scored="false"{% else %}data-scored="true"{% endif %}
                                 data-type="{% if result.open_source %}open-source{% else %}proprietary{% endif %}"
                                 data-model="{{ result.model }}"
                                 data-resolved="{{ result.resolved if result.resolved is not none else -1 }}"
                                 data-org="{{ result.org }}"
                                 data-date="{{ result.date or '' }}"
+                                {% if result.details_url %}data-details-url="{{ result.details_url }}" tabindex="0" role="link" aria-label="View run details for {{ result.model }}"{% endif %}
                                 {% if result.status %}data-status="{{ result.status }}"{% endif %}
                                 {% if result.footnote %}data-footnote="{{ result.footnote }}"{% endif %}>
                                 <td class="model-col">
                                     <div class="model-name">
-                                        <span class="model-name-text">{{ result.model }}</span><span class="footnote-ref" style="display:none;"></span>
+                                        {% if result.details_url %}
+                                        <a class="model-name-text model-detail-link" href="{{ result.details_url }}">{{ result.model }}</a>
+                                        {% else %}
+                                        <span class="model-name-text">{{ result.model }}</span>
+                                        {% endif %}
+                                        <span class="footnote-ref" style="display:none;"></span>
                                         {% if result.open_source %}
                                         <span class="badge badge-oss" title="Open Source">OSS</span>
                                         {% endif %}
@@ -133,17 +147,6 @@
                                     {{ result.date }}
                                     {% else %}
                                     <span class="table-muted">Pending</span>
-                                    {% endif %}
-                                </td>
-                                <td class="trajs-col">
-                                    {% if result.logs_link %}
-                                    <a href="{{ result.logs_link }}" target="_blank" rel="noopener noreferrer" class="trajs-link" title="View artifact">
-                                        <svg class="external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                            <polyline points="15 3 21 3 21 9"></polyline>
-                                            <line x1="10" y1="14" x2="21" y2="3"></line>
-                                        </svg>
-                                    </a>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -188,7 +191,8 @@
     section_title,
     section_description,
     leaderboards,
-    site_config.target_tabs
+    site_config.target_tabs,
+    initial_leaderboard
 ) }}
 
 {{ render_leaderboard_panel(
@@ -198,7 +202,8 @@
     site_config.legacy.section_title,
     site_config.legacy.section_description,
     site_config.legacy.leaderboards,
-    site_config.legacy.target_tabs
+    site_config.legacy.target_tabs,
+    none
 ) }}
 
 <script type="application/json" id="leaderboard-data">

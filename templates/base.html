@@ -7,7 +7,7 @@
     <meta name="description" content="{{ website_subtitle or website_title }}">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="img/secbench.png">
+    <link rel="icon" type="image/png" href="{{ asset_prefix }}img/secbench.png">
 
     <!-- Preconnect to Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,11 +15,11 @@
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="css/core.css?v=2">
-    <link rel="stylesheet" href="css/layout.css?v=2">
-    <link rel="stylesheet" href="css/components.css?v=2">
-    <link rel="stylesheet" href="css/filters.css?v=2">
-    <link rel="stylesheet" href="css/sidebar.css?v=3">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/core.css?v=2">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/layout.css?v=2">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/components.css?v=3">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/filters.css?v=2">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/sidebar.css?v=3">
 
     {% block head_extra %}{% endblock %}
 </head>
@@ -56,7 +56,7 @@
             </div>
             <hr class="sidebar-divider">
             <nav class="sidebar-nav">
-                <a href="index.html" class="sidebar-link active" data-section="leaderboard">
+                <a href="{{ site_root }}" class="sidebar-link active" data-section="leaderboard">
                     <span>Leaderboards</span>
                 </a>
 
@@ -71,13 +71,13 @@
                     {{ sidebar_resource_link(content.resource_links.classic.code_url, 'Code') }}
                     {{ sidebar_resource_link(content.resource_links.classic.data_url, 'Data') }}
                 </div>
-                <a href="contact.html" class="sidebar-sublink" data-page="contact">
+                <a href="{{ site_root }}contact.html" class="sidebar-sublink" data-page="contact">
                     <span>Contact</span>
                 </a>
-                <a href="citations.html" class="sidebar-sublink" data-page="citations">
+                <a href="{{ site_root }}citations.html" class="sidebar-sublink" data-page="citations">
                     <span>Citations</span>
                 </a>
-                <a href="submit.html" class="sidebar-sublink" data-page="submit">
+                <a href="{{ site_root }}submit.html" class="sidebar-sublink" data-page="submit">
                     <span>Submit</span>
                 </a>
             </nav>
@@ -124,12 +124,12 @@
     </footer>
 
     <!-- JavaScript -->
-    <script src="js/dark-mode.js?v=2"></script>
-    <script src="js/multiselect-dropdown.js?v=2"></script>
-    <script src="js/leaderboard.js?v=2"></script>
-    <script src="js/filters.js?v=2"></script>
-    <script src="js/footnotes.js?v=2"></script>
-    <script src="js/sidebar.js?v=2"></script>
+    <script src="{{ asset_prefix }}js/dark-mode.js?v=2"></script>
+    <script src="{{ asset_prefix }}js/multiselect-dropdown.js?v=2"></script>
+    <script src="{{ asset_prefix }}js/leaderboard.js?v=3"></script>
+    <script src="{{ asset_prefix }}js/filters.js?v=2"></script>
+    <script src="{{ asset_prefix }}js/footnotes.js?v=2"></script>
+    <script src="{{ asset_prefix }}js/sidebar.js?v=2"></script>
     {% block scripts_extra %}{% endblock %}
 </body>
 </html>

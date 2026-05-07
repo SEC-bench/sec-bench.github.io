@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sections = document.querySelectorAll('.content-section');
     const proToggle = document.getElementById('pro-toggle');
     const modePanels = document.querySelectorAll('[data-mode-panel]');
+    const hasLeaderboardPanels = modePanels.length > 0;
 
     function setLeaderboardMode(mode) {
         const isPro = mode === 'pro';
@@ -60,6 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sidebarLinks.forEach(link => {
         link.addEventListener('click', event => {
+            if (!hasLeaderboardPanels) {
+                return;
+            }
+
             const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
             if (currentPage !== 'index.html' && currentPage !== '') {
@@ -81,6 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     benchmarkLinks.forEach(link => {
         link.addEventListener('click', event => {
+            if (!hasLeaderboardPanels) {
+                return;
+            }
+
             const currentPage = window.location.pathname.split('/').pop() || 'index.html';
             const tabName = link.getAttribute('data-leaderboard');
 
@@ -135,6 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+    if (!hasLeaderboardPanels) {
+        activateMainLeaderboardLink();
+        return;
+    }
 
     if (currentPage !== 'index.html' && currentPage !== '') {
         sidebarLinks.forEach(link => link.classList.remove('active'));

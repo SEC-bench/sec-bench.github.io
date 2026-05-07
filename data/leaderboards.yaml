@@ -112,6 +112,11 @@ leaderboards:
         open_source: false
         verified: false
         logs_link: ""
+        details:
+          slug: codex-v0.115.0_gpt-5.4-xhigh
+          file: v8/codex-v0.115.0_gpt-5.4-xhigh.json
+          source_run: v8/codex_gpt-5.4_source-files
+          average_cost: 9.97
         footnote: "Run used a fixed timeout; score may change if the timeout is adjusted."
 
       - model: Claude Code (v2.1.81) + Opus 4.6 (high)
@@ -121,6 +126,11 @@ leaderboards:
         open_source: false
         verified: false
         logs_link: ""
+        details:
+          slug: claude-v2.1.81_opus-4.6-high
+          file: v8/claude-v2.1.81_opus-4.6-high.json
+          source_run: v8/claude_opus-4.6_source-files
+          average_cost: 17.68
         footnote: "Run used a fixed timeout; score may change if the timeout is adjusted."
 
       - model: OpenCode (v1.14.19) + Kimi K2.6 (high)
@@ -130,6 +140,11 @@ leaderboards:
         open_source: false
         verified: false
         logs_link: ""
+        details:
+          slug: opencode-v1.14.19_kimi-k2.6-high
+          file: v8/opencode-v1.14.19_kimi-k2.6-high.json
+          source_run: v8/opencode_kimi-k2.6_source-files
+          average_cost: 6.88
         footnote: "Run used a fixed timeout; score may change if the timeout is adjusted."
 
   - display_name: SpiderMonkey
@@ -142,6 +157,11 @@ leaderboards:
         open_source: false
         verified: false
         logs_link: ""
+        details:
+          slug: codex-v0.115.0_gpt-5.4-xhigh
+          file: spidermonkey/codex-v0.115.0_gpt-5.4-xhigh.json
+          source_run: sm/codex_gpt-5.4_source-files
+          average_cost: 7.65
         footnote: "Run used a fixed timeout; score may change if the timeout is adjusted."
 
       - model: Claude Code (v2.1.81) + Opus 4.6 (high)
@@ -151,6 +171,11 @@ leaderboards:
         open_source: false
         verified: false
         logs_link: ""
+        details:
+          slug: claude-v2.1.81_opus-4.6-high
+          file: spidermonkey/claude-v2.1.81_opus-4.6-high.json
+          source_run: sm/claude_opus-4.6_source-files
+          average_cost: 15.22
         footnote: "Run used a fixed timeout; score may change if the timeout is adjusted."
 
 legacy:

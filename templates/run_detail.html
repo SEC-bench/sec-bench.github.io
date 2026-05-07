@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="run-detail-page">
+    <section class="run-page-top">
+        <a class="run-back-link" href="/{{ target.name }}">&larr; Back to {{ target.display_name }}</a>
+    </section>
+
+    <header class="run-hero">
+        <div class="run-hero-main">
+            <img class="run-org-logo" src="{{ detail.org | org_logo }}" alt="{{ detail.org }}">
+            <div class="run-hero-copy">
+                <h1 class="run-hero-title">{{ detail.model }}</h1>
+                <p class="run-hero-meta">{{ detail.org }} &middot; {{ detail.target_display_name }}{% if result.rank %} &middot; Rank #{{ result.rank }}{% endif %}</p>
+                <p class="run-hero-submeta">{{ detail.date }} &middot; {{ detail.source_run }}</p>
+            </div>
+        </div>
+
+        <section class="run-metrics" aria-label="Run summary">
+            <article class="run-metric">
+                <strong>{{ detail.summary.success_rate | format_percent }}</strong>
+                <span>Solved</span>
+            </article>
+            <article class="run-metric">
+                <strong>{{ detail.summary.solved | format_number }} / {{ detail.summary.instances | format_number }}</strong>
+                <span>Solved Instances</span>
+            </article>
+            <article class="run-metric">
+                <strong>{{ detail.summary.total_cost | format_currency }}</strong>
+                <span>Total Cost</span>
+            </article>
+            <article class="run-metric">
+                <strong>{{ detail.summary.total_calls | format_number }}</strong>
+                <span>Total Calls</span>
+            </article>
+        </section>
+
+        <div class="run-secondary-stats" aria-label="Additional run summary">
+            <span><strong>{{ detail.summary.checked | format_number }}</strong> checked</span>
+            <span><strong>{{ detail.summary.verified_pocs | format_number }}</strong> verified PoCs</span>
+            <span><strong>{{ detail.summary.no_poc | format_number }}</strong> no PoC</span>
+            {% if detail.summary.total_bounty %}
+            <span><strong>{{ detail.summary.solved_bounty | format_currency }}</strong> bounty solved</span>
+            <span><strong>{{ detail.summary.total_bounty | format_currency }}</strong> bounty pool</span>
+            {% endif %}
+        </div>
+    </header>
+
+    <section class="run-detail-section">
+        <div class="run-section-header">
+            <h2>Per-Instance Results</h2>
+            <span>{{ detail.summary.instances | format_number }} instances</span>
+        </div>
+
+        <div class="table-container run-table-container">
+            <table class="run-results-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Instance</th>
+                        <th>Result</th>
+                        <th>Error Type</th>
+                        <th>Bug Type</th>
+                        <th>PoCs</th>
+                        {% if detail.summary.total_bounty %}<th>Bounty</th>{% endif %}
+                        <th>Cost</th>
+                        <th>Calls</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for instance in detail.instances %}
+                    <tr class="run-instance-row {% if instance.success %}instance-row-solved{% endif %}">
+                        <td class="run-index">{{ loop.index }}</td>
+                        <td class="instance-cell">
+                            {% if detail.target == 'v8' %}
+                            <a href="https://issues.chromium.org/issues/{{ instance.id }}" target="_blank" rel="noopener noreferrer">{{ instance.id }}</a>
+                            {% elif detail.target == 'spidermonkey' %}
+                            <a href="https://bugzilla.mozilla.org/show_bug.cgi?id={{ instance.id }}" target="_blank" rel="noopener noreferrer">{{ instance.id }}</a>
+                            {% else %}
+                            <span>{{ instance.id }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="run-result-cell">
+                            <span class="result-pill result-pill-{{ instance.result | lower | replace(' ', '-') }}"
+                                  {% if instance.result_description %}title="{{ instance.result_description }}" aria-label="{{ instance.result }}: {{ instance.result_description }}"{% endif %}>{{ instance.result }}</span>
+                        </td>
+                        <td class="run-type-cell run-error-cell">
+                            {% if instance.expected_type %}
+                            <code>{{ instance.expected_type }}</code>
+                            {% else %}
+                            <span class="table-muted">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td class="run-type-cell run-bug-cell">
+                            {% if instance.vulnerability_type %}
+                            <span>{{ instance.vulnerability_type }}</span>
+                            {% else %}
+                            <span class="table-muted">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td class="run-num-cell run-poc-cell"><strong>{{ instance.verified_pocs | format_number }}</strong><span>/ {{ instance.js_total | format_number }}</span></td>
+                        {% if detail.summary.total_bounty %}
+                        <td class="run-num-cell run-money-cell">{% if instance.bounty %}{{ instance.bounty | format_currency }}{% else %}<span class="table-muted">None</span>{% endif %}</td>
+                        {% endif %}
+                        <td class="run-num-cell run-money-cell">{% if instance.cost is not none %}{{ instance.cost | format_currency }}{% else %}<span class="table-muted">N/A</span>{% endif %}</td>
+                        <td class="run-num-cell">{% if instance.calls is not none %}{{ instance.calls | format_number }}{% else %}<span class="table-muted">N/A</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
