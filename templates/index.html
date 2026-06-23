@@ -192,7 +192,11 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
                                     <th class="completed-col sortable" data-sort="completed">Completed</th>
                                     {% endif %}
                                     <th class="org-col sortable" data-sort="org">Provider</th>
+                                    {% if supports_score_modes %}
+                                    <th class="backend-col sortable" data-sort="backend">Backend</th>
+                                    {% else %}
                                     <th class="date-col sortable" data-sort="date">Date</th>
+                                    {% endif %}
                                     {% if not supports_score_modes %}
                                     <th class="logs-col">Artifacts</th>
                                     {% endif %}
@@ -208,6 +212,7 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
                                     data-rank="{{ result.rank }}"
                                     {% if supports_score_modes %}data-completed="{{ result.completed_instances }}"{% endif %}
                                     data-org="{{ result.org }}"
+                                    {% if supports_score_modes %}data-backend="{{ result.backend or '' }}"{% endif %}
                                     data-date="{{ result.date or '' }}"
                                     {% if supports_score_modes %}
                                     {{ score_mode_attrs(result, 'headline') }}
@@ -253,7 +258,11 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
                                     <td class="org-col" data-label="Provider">
                                         <span>{{ result.org }}</span>
                                     </td>
+                                    {% if supports_score_modes %}
+                                    <td class="backend-col" data-label="Backend">{{ result.backend }}</td>
+                                    {% else %}
                                     <td class="date-col" data-label="Date">{{ result.date }}</td>
+                                    {% endif %}
                                     {% if not supports_score_modes %}
                                     <td class="logs-col" data-label="Artifacts">
                                         {% if result.logs_link %}

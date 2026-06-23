@@ -272,7 +272,7 @@ function initSorting() {
 }
 
 function defaultDirection(column) {
-    if (column === 'model' || column === 'org' || column === 'date') return 'asc';
+    if (column === 'model' || column === 'org' || column === 'backend' || column === 'date') return 'asc';
     if (column === 'rank') return 'asc';
     return 'desc';
 }

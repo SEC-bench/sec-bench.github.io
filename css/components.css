@@ -281,6 +281,7 @@
     min-width: 120px;
 }
 
+.backend-col,
 .date-col {
     min-width: 110px;
     white-space: nowrap;

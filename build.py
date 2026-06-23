@@ -439,6 +439,31 @@ def normalize_results_snapshot(data: dict) -> dict:
     }
 
 
+def infer_backend(result: dict) -> str:
+    """Infer the execution backend for existing Pro result snapshots."""
+    if result.get("backend"):
+        return str(result["backend"])
+
+    model_text = " ".join(
+        str(result.get(key, "")) for key in ("model", "model_version", "agent")
+    ).lower()
+    org = str(result.get("org", "")).lower()
+
+    if org == "openai" or "gpt" in model_text:
+        return "OpenAI"
+    open_weight_orgs = {"z.ai", "zhipu", "moonshot ai", "minimax"}
+    open_weight_models = ("glm", "kimi", "minimax")
+    if (
+        result.get("open_source")
+        or org == "anthropic"
+        or org in open_weight_orgs
+        or "opus" in model_text
+        or any(name in model_text for name in open_weight_models)
+    ):
+        return "AWS Bedrock"
+    return ""
+
+
 def load_results_data(data_dir: Path) -> dict | None:
     """Load trajectory-derived generated Pro snapshots for CI builds without siblings."""
     path = data_dir / RESULTS_DATA_FILE
@@ -581,6 +606,8 @@ def apply_results_data(
         )
         if footnotes:
             leaderboard["footnotes"] = footnotes
+        for result in leaderboard.get("results", []):
+            result["backend"] = infer_backend(result)
 
     leaderboards_data["leaderboards"] = generated["leaderboards"]
     leaderboards_data["target_tabs"] = merge_generated_target_tabs(
@@ -588,6 +615,8 @@ def apply_results_data(
         generated["target_tabs"],
     )
     normalize_run_detail_summary_metrics(generated["run_details"])
+    for detail in generated["run_details"].values():
+        detail["backend"] = infer_backend(detail)
     run_details.update(generated["run_details"])
 
 
@@ -1067,7 +1096,7 @@ def render_base_html_stdlib(
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{asset_prefix}css/core.css?v=6">
     <link rel="stylesheet" href="{asset_prefix}css/layout.css?v=16">
-    <link rel="stylesheet" href="{asset_prefix}css/components.css?v=18">
+    <link rel="stylesheet" href="{asset_prefix}css/components.css?v=19">
     <link rel="stylesheet" href="{asset_prefix}css/filters.css?v=6">
     <link rel="stylesheet" href="{asset_prefix}css/sidebar.css?v=5">
 </head>
@@ -1280,6 +1309,11 @@ def render_leaderboard_panel_stdlib(
             filters = f'<div class="filter-controls">{type_filter}{version_filter}</div>'
 
         extra_headers = '<th class="completed-col sortable" data-sort="completed">Completed</th>' if supports_score_modes else ""
+        backend_or_date_header = (
+            '<th class="backend-col sortable" data-sort="backend">Backend</th>'
+            if supports_score_modes
+            else '<th class="date-col sortable" data-sort="date">Date</th>'
+        )
         logs_header = "" if supports_score_modes else '<th class="logs-col">Artifacts</th>'
         rows = []
         for result in leaderboard.get("results", []):
@@ -1305,6 +1339,7 @@ def render_leaderboard_panel_stdlib(
                 f'data-date="{esc(result.get("date", ""))}"',
             ]
             if supports_score_modes:
+                row_attrs.append(f'data-backend="{esc(result.get("backend", ""))}"')
                 row_attrs.append(f'data-completed="{esc(result.get("completed_instances", ""))}"')
                 for mode_name in ("headline", "completed"):
                     mode_data = result["score_modes"][mode_name]
@@ -1352,6 +1387,12 @@ def render_leaderboard_panel_stdlib(
                     logs = '<span class="table-muted">N/A</span>'
                 logs_cell = f'<td class="logs-col" data-label="Artifacts">{logs}</td>'
 
+            backend_or_date_cell = (
+                f'<td class="backend-col" data-label="Backend">{esc(result.get("backend", ""))}</td>'
+                if supports_score_modes
+                else f'<td class="date-col" data-label="Date">{esc(result.get("date"))}</td>'
+            )
+
             rows.append(
                 f'<tr {" ".join(row_attrs)}>'
                 f'<td class="rank-col" data-label="#"><span class="rank-badge" data-rank-value>{esc(result.get("rank", ""))}</span></td>'
@@ -1361,7 +1402,7 @@ def render_leaderboard_panel_stdlib(
                 f'<div class="model-name-stack">{name_html}</div>{badges}</div></td>'
                 f'<td class="resolved-col" data-label="{"Success" if supports_score_modes else "Score"}">{render_score_bar_stdlib(result, leaderboard, supports_score_modes)}</td>'
                 f'{completed_cell}<td class="org-col" data-label="Provider"><span>{esc(result.get("org"))}</span></td>'
-                f'<td class="date-col" data-label="Date">{esc(result.get("date"))}</td>{logs_cell}</tr>'
+                f'{backend_or_date_cell}{logs_cell}</tr>'
             )
 
         static_notes = ""
@@ -1387,7 +1428,7 @@ def render_leaderboard_panel_stdlib(
                         <th class="resolved-col sortable active desc" data-sort="resolved">{"Success" if supports_score_modes else "Score"}</th>
                         {extra_headers}
                         <th class="org-col sortable" data-sort="org">Provider</th>
-                        <th class="date-col sortable" data-sort="date">Date</th>
+                        {backend_or_date_header}
                         {logs_header}
                     </tr>
                 </thead>
