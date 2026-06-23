@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Create data/results.json only when the checked-in snapshot is absent."""
 
+import copy
 import csv
 import json
 import os
@@ -24,6 +25,52 @@ from build import (
 TRAJECTORIES_ENV_VAR = "SEC_BENCH_TRAJECTORIES_DIR"
 NO_POC_STATUSES = {"no_js", "no_poc"}
 PUBLISH_DATE = "2026-06-17"
+
+RESULT_VERSIONS = (
+    {
+        "name": "260505",
+        "date": "2026-05-05",
+        "title": "Initial V8 + SpiderMonkey release",
+        "summary": "103 V8 + 80 SpiderMonkey instances",
+        "default": False,
+    },
+    {
+        "name": "260617",
+        "date": "2026-06-17",
+        "title": "Linux + SpiderMonkey extension",
+        "summary": "103 V8 + 104 SpiderMonkey + 137 Linux instances",
+        "default": True,
+    },
+)
+
+DEFAULT_RESULT_VERSION = "260617"
+
+SM_260617_ADDED_IDS = {
+    "1675905",
+    "1736307",
+    "1736310",
+    "1739972",
+    "1838587",
+    "1863391",
+    "1871618",
+    "1875795",
+    "1878261",
+    "1884518",
+    "1895123",
+    "1934365",
+    "1965751",
+    "1970811",
+    "1979359",
+    "1985224",
+    "1985765",
+    "1987624",
+    "1988967",
+    "1994994",
+    "2000469",
+    "2003589",
+    "2023007",
+    "2024918",
+}
 
 PROJECTS = (
     {
@@ -604,9 +651,295 @@ def serialize_results_data(generated: dict) -> dict:
     }
 
 
+def result_key(result: dict) -> tuple:
+    return (
+        result.get("agent"),
+        result.get("model"),
+        result.get("effort"),
+        result.get("org"),
+    )
+
+
+def result_slug(result: dict) -> str | None:
+    details = result.get("details") if isinstance(result.get("details"), dict) else {}
+    return details.get("slug") if details else None
+
+
+def summarize_instances(instances: list[dict], original_summary: dict | None = None) -> dict:
+    total = len(instances)
+    solved = sum(1 for instance in instances if instance.get("success"))
+    checked = sum(1 for instance in instances if instance.get("status") == "checked")
+    no_poc = sum(
+        1 for instance in instances if instance.get("status") in NO_POC_STATUSES
+    )
+    completed = [instance for instance in instances if instance.get("completed")]
+    completed_solved = sum(1 for instance in completed if instance.get("success"))
+    timeouts = sum(1 for instance in instances if instance.get("timed_out"))
+    timeout_successes = sum(
+        1
+        for instance in instances
+        if instance.get("timed_out") and instance.get("success")
+    )
+    timeout_caps = sorted(
+        {instance.get("timeout_label") for instance in instances if instance.get("timeout_label")}
+    )
+    total_runtime = sum(instance.get("runtime_min") or 0 for instance in instances)
+    total_tools = sum(instance.get("tool_calls") or 0 for instance in instances)
+    total_tokens_input = sum(
+        instance.get("tokens_input_count") or 0 for instance in instances
+    )
+    total_tokens_output = sum(
+        instance.get("tokens_output_count") or 0 for instance in instances
+    )
+    total_tokens = sum(instance.get("tokens_total_count") or 0 for instance in instances)
+    if not total_tokens and (total_tokens_input or total_tokens_output):
+        total_tokens = total_tokens_input + total_tokens_output
+
+    return {
+        "instances": total,
+        "solved": solved,
+        "success_rate": percent(solved, total),
+        "checked": checked,
+        "no_poc": no_poc,
+        "completed_instances": len(completed),
+        "completed_solved": completed_solved,
+        "completed_rate": percent(completed_solved, len(completed)),
+        "timeouts": timeouts,
+        "timeout_successes": timeout_successes,
+        "timeout_caps": timeout_caps,
+        "total_runtime_min": round(total_runtime, 1),
+        "total_runtime_label": format_runtime_minutes(total_runtime),
+        "average_runtime_min": round(total_runtime / total, 1) if total else 0,
+        "total_tool_calls": total_tools,
+        "average_tool_calls": round(total_tools / total, 1) if total else 0,
+        "total_tokens": total_tokens,
+        "total_tokens_input": total_tokens_input,
+        "total_tokens_output": total_tokens_output,
+        "total_tokens_label": token_pair_from_counts(
+            total_tokens_input, total_tokens_output
+        ),
+        "average_tokens": round(total_tokens / total, 1) if total else 0,
+        "average_tokens_input": round(total_tokens_input / total, 1) if total else 0,
+        "average_tokens_output": round(total_tokens_output / total, 1) if total else 0,
+        "average_tokens_label": token_pair_from_counts(
+            total_tokens_input / total if total else 0,
+            total_tokens_output / total if total else 0,
+        ),
+        "average_runtime_label": format_runtime_minutes(
+            total_runtime / total if total else 0
+        ),
+        "total_cost": (original_summary or {}).get("total_cost"),
+        "total_calls": total_tools,
+        "verified_pocs": sum(instance.get("verified_pocs") or 0 for instance in instances),
+        "unsure_pocs": sum(instance.get("unsure_pocs") or 0 for instance in instances),
+        "illegal_pocs": sum(instance.get("illegal_pocs") or 0 for instance in instances),
+        "invalid_pocs": sum(instance.get("invalid_pocs") or 0 for instance in instances),
+        "score_modes": {
+            "headline": score_mode(solved, total),
+            "completed": score_mode(completed_solved, len(completed)),
+        },
+    }
+
+
+def update_snapshot_detail_ranks(snapshot: dict, leaderboard: dict):
+    target = leaderboard["name"]
+    if target == "overall":
+        return
+
+    for result in leaderboard.get("results", []):
+        slug = result_slug(result)
+        detail = snapshot["run_details"].get(f"{target}/{slug}") if slug else None
+        if not detail:
+            continue
+        for mode in ("headline", "completed"):
+            detail["summary"]["score_modes"][mode]["rank"] = result["score_modes"][mode]["rank"]
+
+
+def build_snapshot_project_board(
+    snapshot: dict,
+    source_snapshot: dict,
+    target: str,
+    keep_ids: set[str] | None = None,
+) -> dict:
+    source_board = next(
+        board for board in source_snapshot["leaderboards"] if board["name"] == target
+    )
+    board = copy.deepcopy(source_board)
+    results = []
+
+    for result in board["results"]:
+        slug = result_slug(result)
+        detail_key = f"{target}/{slug}"
+        detail = copy.deepcopy(source_snapshot["run_details"][detail_key])
+        if keep_ids is not None:
+            detail["instances"] = [
+                instance
+                for instance in detail["instances"]
+                if str(instance.get("id")) in keep_ids
+            ]
+        detail["summary"] = summarize_instances(
+            detail["instances"], detail.get("summary", {})
+        )
+        snapshot["run_details"][detail_key] = detail
+
+        updated = copy.deepcopy(result)
+        summary = detail["summary"]
+        updated["resolved"] = summary["score_modes"]["headline"]["score"]
+        updated["score_modes"] = copy.deepcopy(summary["score_modes"])
+        updated["completed_instances"] = summary["completed_instances"]
+        updated["timeouts"] = summary["timeouts"]
+        results.append(updated)
+
+    board["results"] = results
+    board["instances"] = results[0]["score_modes"]["headline"]["total"] if results else 0
+    apply_score_ranks(board["results"])
+    update_snapshot_detail_ranks(snapshot, board)
+    return board
+
+
+def build_snapshot_overall_board(
+    source_snapshot: dict,
+    project_boards: list[dict],
+) -> dict:
+    source_overall = next(
+        board for board in source_snapshot["leaderboards"] if board["name"] == "overall"
+    )
+    board = copy.deepcopy(source_overall)
+    board["instances"] = sum(project["instances"] for project in project_boards)
+    board["description"] = "Overall performance across V8 and Firefox."
+    board["results"] = []
+    project_by_name = {project["name"]: project for project in project_boards}
+
+    for source_result in source_overall["results"]:
+        key = result_key(source_result)
+        project_parts = []
+        headline_total = 0
+        headline_solved = 0
+        completed_total = 0
+        completed_solved = 0
+        timeouts = 0
+
+        for project_name, label in (("v8", "V8"), ("firefox", "Firefox")):
+            project_result = next(
+                result
+                for result in project_by_name[project_name]["results"]
+                if result_key(result) == key
+            )
+            headline = project_result["score_modes"]["headline"]
+            completed = project_result["score_modes"]["completed"]
+            headline_total += headline["total"]
+            headline_solved += headline["solved"]
+            completed_total += completed["total"]
+            completed_solved += completed["solved"]
+            timeouts += project_result.get("timeouts", 0)
+            project_parts.append(
+                {
+                    "name": project_name,
+                    "label": label,
+                    "solved": headline["solved"],
+                    "total": headline["total"],
+                    "score": headline["score"],
+                    "score_modes": {
+                        "headline": copy.deepcopy(headline),
+                        "completed": copy.deepcopy(completed),
+                    },
+                }
+            )
+
+        for part in project_parts:
+            part["score_modes"]["headline"]["width"] = percent(
+                part["score_modes"]["headline"]["solved"], headline_total
+            )
+            part["score_modes"]["completed"]["width"] = percent(
+                part["score_modes"]["completed"]["solved"], completed_total
+            )
+
+        updated = copy.deepcopy(source_result)
+        for key_to_remove in ("details", "details_available", "details_url", "details_summary"):
+            updated.pop(key_to_remove, None)
+        updated["resolved"] = percent(headline_solved, headline_total)
+        updated["score_modes"] = {
+            "headline": score_mode(headline_solved, headline_total),
+            "completed": score_mode(completed_solved, completed_total),
+        }
+        updated["completed_instances"] = completed_total
+        updated["timeouts"] = timeouts
+        updated["projects"] = project_parts
+        board["results"].append(updated)
+
+    apply_score_ranks(board["results"])
+    return board
+
+
+def build_snapshot_target_tabs(source_snapshot: dict, project_boards: list[dict]) -> list[dict]:
+    totals = {board["name"]: board["instances"] for board in project_boards}
+    overall_total = sum(totals.values())
+    current_tabs = {tab["name"]: copy.deepcopy(tab) for tab in source_snapshot["target_tabs"]}
+    tabs = [
+        {
+            "name": "overall",
+            "display_name": "Overall",
+            "leaderboard": "overall",
+            "instances": overall_total,
+            "status": "available",
+            "description": f"<strong>Overall</strong> aggregates V8 and Firefox into a <strong>{overall_total}</strong>-instance leaderboard. Split bars show how each project contributes to the score.",
+        }
+    ]
+
+    for target_name, instances in (("v8", 103), ("firefox", 80)):
+        tab = current_tabs[target_name]
+        tab["instances"] = totals[target_name]
+        if target_name == "v8":
+            tab["description"] = f"<strong>V8</strong> is Google's open-source JavaScript and WebAssembly engine that powers Chrome and Node.js. This snapshot includes <strong>{instances}</strong> instances."
+        else:
+            tab["description"] = f"<strong>Firefox</strong> tracks SpiderMonkey JavaScript and WebAssembly engine vulnerabilities. This snapshot includes <strong>{instances}</strong> instances."
+        tabs.append(tab)
+
+    return tabs
+
+
+def build_260505_snapshot(source_snapshot: dict) -> dict:
+    firefox_ids = {
+        str(instance["id"])
+        for detail_key, detail in source_snapshot["run_details"].items()
+        if detail_key.startswith("firefox/")
+        for instance in detail.get("instances", [])
+    }
+    initial_firefox_ids = firefox_ids - SM_260617_ADDED_IDS
+    if len(initial_firefox_ids) != 80:
+        raise SystemExit(
+            f"Expected 80 initial SpiderMonkey instances, got {len(initial_firefox_ids)}"
+        )
+
+    snapshot = {"leaderboards": [], "target_tabs": [], "run_details": {}}
+    v8_board = build_snapshot_project_board(snapshot, source_snapshot, "v8")
+    firefox_board = build_snapshot_project_board(
+        snapshot, source_snapshot, "firefox", initial_firefox_ids
+    )
+    overall_board = build_snapshot_overall_board(
+        source_snapshot, [v8_board, firefox_board]
+    )
+    snapshot["leaderboards"] = [overall_board, v8_board, firefox_board]
+    snapshot["target_tabs"] = build_snapshot_target_tabs(
+        source_snapshot, [v8_board, firefox_board]
+    )
+    return snapshot
+
+
+def build_versioned_results_data(current_snapshot: dict) -> dict:
+    return {
+        "versions": list(RESULT_VERSIONS),
+        "default_version": DEFAULT_RESULT_VERSION,
+        "snapshots": {
+            "260505": build_260505_snapshot(current_snapshot),
+            "260617": current_snapshot,
+        },
+    }
+
+
 def write_results_data(data_dir: Path, generated: dict):
     path = data_dir / RESULTS_DATA_FILE
-    snapshot = serialize_results_data(generated)
+    snapshot = build_versioned_results_data(serialize_results_data(generated))
     path.write_text(
         json.dumps(snapshot, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",

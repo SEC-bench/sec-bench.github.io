@@ -36,7 +36,8 @@ section_description: >
   bar shows the <strong>success</strong> rate: the share of instances that
   satisfy <strong>two</strong> criteria: the PoC matches the expected crash
   class in the vulnerable image, and the same PoC is blocked on that instance's
-  fixed build (differential PASS/FAIL).
+  fixed build (differential PASS/FAIL). Use <strong>Version</strong> to switch
+  between public benchmark snapshots.
 
 footer_links: []
 

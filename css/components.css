@@ -123,6 +123,18 @@
     grid-template-columns: repeat(2, minmax(118px, 1fr));
 }
 
+.leaderboard-view-controls {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.version-tab-fallback:not(.active) {
+    color: var(--ink-3);
+}
+
 .score-mode-tab {
     border: 0;
     border-right: 1px solid var(--rule);
@@ -1051,8 +1063,13 @@
         padding-right: 12px;
     }
 
+    .leaderboard-view-controls,
     .score-mode-tabs {
         width: 100%;
+    }
+
+    .leaderboard-view-controls {
+        justify-content: stretch;
     }
 
     .target-tabs {

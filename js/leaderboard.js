@@ -32,9 +32,8 @@ function getLeaderboardNameFromPath() {
     const segments = window.location.pathname.split('/').filter(Boolean);
     if (!segments.length) return null;
 
-    const candidate = segments[0];
     const names = getLeaderboardNames();
-    return names.includes(candidate) ? candidate : null;
+    return segments.find(candidate => names.includes(candidate)) || null;
 }
 
 function getTargetUrlForTab(tab) {
@@ -61,11 +60,65 @@ function getScopeForTab(tab) {
     return button?.closest('[data-mode-panel]') || document;
 }
 
+function updateVersionControls(tab) {
+    document.querySelectorAll('[data-version-link]').forEach(link => {
+        const targetUrl = link.getAttribute(`data-version-url-${tab}`);
+        const overallUrl = link.getAttribute('data-version-url-overall');
+        const nextUrl = targetUrl || overallUrl;
+
+        if (nextUrl) {
+            link.setAttribute('href', nextUrl);
+        }
+
+        const fallback = !targetUrl && tab !== 'overall';
+        link.classList.toggle('version-tab-fallback', fallback);
+
+        const baseTitle = link.getAttribute('data-version-title') || '';
+        if (fallback) {
+            link.setAttribute('title', `${baseTitle} - opens Overall; selected target is not in this snapshot`);
+        } else {
+            link.setAttribute('title', baseTitle);
+        }
+    });
+
+    document.querySelectorAll('[data-version-select]').forEach(select => {
+        let selectedTitle = '';
+        let selectedFallback = false;
+
+        Array.from(select.options).forEach(option => {
+            const targetUrl = option.getAttribute(`data-version-url-${tab}`);
+            const overallUrl = option.getAttribute('data-version-url-overall');
+            const nextUrl = targetUrl || overallUrl;
+
+            if (nextUrl) {
+                option.value = nextUrl;
+            }
+
+            const fallback = !targetUrl && tab !== 'overall';
+            option.dataset.versionFallback = String(fallback);
+
+            if (option.selected) {
+                selectedTitle = option.getAttribute('data-version-title') || '';
+                selectedFallback = fallback;
+            }
+        });
+
+        select.classList.toggle('version-select-fallback', selectedFallback);
+        select.setAttribute(
+            'title',
+            selectedFallback
+                ? `${selectedTitle} - opens Overall; selected target is not in this snapshot`
+                : selectedTitle
+        );
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     currentTab = getInitialLeaderboardName();
 
     initTabs();
     initScoreModes();
+    initVersionSelects();
     initSorting();
     initRowNavigation();
 
@@ -88,6 +141,16 @@ function initScoreModes() {
     document.querySelectorAll('[data-score-mode]').forEach(button => {
         button.addEventListener('click', () => {
             applyScoreMode(button.getAttribute('data-score-mode'));
+        });
+    });
+}
+
+function initVersionSelects() {
+    document.querySelectorAll('[data-version-select]').forEach(select => {
+        select.addEventListener('change', () => {
+            if (select.value) {
+                window.location.href = select.value;
+            }
         });
     });
 }
@@ -134,6 +197,7 @@ function switchTab(tab, options = {}) {
     });
 
     currentTab = tab;
+    updateVersionControls(tab);
 
     if (syncHash) {
         const targetUrl = getTargetUrlForTab(tab);

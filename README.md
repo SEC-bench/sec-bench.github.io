@@ -2,7 +2,7 @@
 
 This repository builds the static GitHub Pages website for SEC-bench Pro and the legacy SEC-bench leaderboard.
 
-SEC-bench Pro is the default view. The Pro leaderboards and run-detail pages are rendered from the checked-in static snapshot at `data/results.json`, so GitHub Pages does not need access to the sibling `trajectories` repository.
+SEC-bench Pro is the default view. The Pro leaderboards and run-detail pages are rendered from the checked-in static snapshots at `data/results.json`, so GitHub Pages does not need access to the sibling `trajectories` repository.
 
 ## Quick Start
 
@@ -28,10 +28,11 @@ make serve
 
 ### Pro Results
 
-`data/results.json` is the canonical checked-in snapshot for SEC-bench Pro. It contains:
+`data/results.json` is the canonical checked-in snapshot store for SEC-bench Pro. It contains:
 
-- Overall, V8, Firefox, and Linux leaderboard rows
-- Per-run detail data for all generated run pages
+- Public benchmark versions named by `YYMMDD`
+- Per-version Overall, V8, Firefox, and Linux leaderboard rows as applicable
+- Per-version run detail data for generated run pages
 - Token, runtime, timeout, result, and project contribution summaries
 
 `make build` always runs `make_results.py` before `build.py`.
@@ -49,6 +50,15 @@ SEC_BENCH_TRAJECTORIES_DIR=/path/to/trajectories make build
 ```
 
 After regenerating, review and commit the new `data/results.json`. Do not rely on GitHub Pages CI to access `trajectories`; it will only have files committed to this repository.
+
+### Pro Versions
+
+Public Pro versions use the `YYMMDD` snapshot date as the version name. The latest version is the default root view.
+
+- `260505`: initial public snapshot with 103 V8 and 80 SpiderMonkey instances
+- `260617`: latest/default snapshot with 103 V8, 104 SpiderMonkey, and 137 Linux instances
+
+The default version renders at `/`, `/v8`, `/firefox`, `/linux`, and their run-detail paths. Older versions render under their version prefix, for example `/260505` and `/260505/firefox`.
 
 ### Site Metadata And Legacy Results
 
@@ -90,7 +100,7 @@ SEC_BENCH_TRAJECTORIES_DIR=/absolute/path/to/trajectories make build
 git diff -- data/results.json
 ```
 
-Then commit the regenerated `data/results.json` together with any related source changes.
+Then commit the regenerated `data/results.json` together with any related source changes. When adding a public benchmark snapshot, update the version metadata and snapshot derivation in `make_results.py` so historical scores remain reproducible.
 
 For small corrections to the published static snapshot, update `data/results.json` directly and avoid adding one-off patch scripts or build-time special cases.
 

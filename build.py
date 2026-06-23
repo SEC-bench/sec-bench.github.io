@@ -6,6 +6,7 @@ Converts YAML data to static HTML using Jinja2 templates
 
 import json
 import html
+import copy
 import re
 import shutil
 from datetime import datetime
@@ -422,18 +423,8 @@ def float_value(value, default=None):
         return default
 
 
-def load_results_data(data_dir: Path) -> dict | None:
-    """Load a trajectory-derived generated snapshot for CI builds without siblings."""
-    path = data_dir / RESULTS_DATA_FILE
-    if not path.exists():
-        return None
-
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        print(f"⚠ Warning: Could not parse {path}: {exc}")
-        return None
-
+def normalize_results_snapshot(data: dict) -> dict:
+    """Normalize one generated Pro results snapshot for rendering."""
     details = {}
     for key, detail in data.get("run_details", {}).items():
         if "/" not in key:
@@ -445,6 +436,62 @@ def load_results_data(data_dir: Path) -> dict | None:
         "leaderboards": data.get("leaderboards", []),
         "target_tabs": data.get("target_tabs", []),
         "run_details": details,
+    }
+
+
+def load_results_data(data_dir: Path) -> dict | None:
+    """Load trajectory-derived generated Pro snapshots for CI builds without siblings."""
+    path = data_dir / RESULTS_DATA_FILE
+    if not path.exists():
+        return None
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        print(f"⚠ Warning: Could not parse {path}: {exc}")
+        return None
+
+    if isinstance(data.get("snapshots"), dict):
+        versions = data.get("versions") or [
+            {"name": name, "date": "", "title": name}
+            for name in data["snapshots"].keys()
+        ]
+        default_version = (
+            data.get("default_version")
+            or next(
+                (
+                    version.get("name")
+                    for version in versions
+                    if version.get("default")
+                ),
+                None,
+            )
+            or (versions[-1].get("name") if versions else None)
+        )
+        snapshots = {}
+        for version in versions:
+            name = version.get("name")
+            if not name or name not in data["snapshots"]:
+                continue
+            snapshots[name] = normalize_results_snapshot(data["snapshots"][name])
+
+        return {
+            "versions": versions,
+            "default_version": default_version,
+            "snapshots": snapshots,
+        }
+
+    return {
+        "versions": [
+            {
+                "name": "current",
+                "date": "",
+                "title": "Current snapshot",
+                "default": True,
+            }
+        ],
+        "default_version": "current",
+        "snapshots": {"current": normalize_results_snapshot(data)},
     }
 
 
@@ -484,7 +531,7 @@ def merge_generated_target_tabs(configured_tabs: list, generated_tabs: list) -> 
     configured_by_name = {
         tab.get("name"): tab for tab in configured_tabs if tab.get("name")
     }
-    metadata_keys = ("display_name", "logo", "leaderboard", "status", "description")
+    metadata_keys = ("display_name", "logo", "leaderboard", "status")
     merged = []
 
     for tab in generated_tabs:
@@ -513,7 +560,7 @@ def apply_results_data(
         if leaderboard.get("name")
     }
     common_footnotes = leaderboards_data.get("pro_common_footnotes", [])
-    metadata_keys = ("display_name", "description", "is_overall")
+    metadata_keys = ("display_name", "is_overall")
 
     for leaderboard in generated["leaderboards"]:
         configured = configured_leaderboards.get(leaderboard.get("name"), {})
@@ -542,6 +589,87 @@ def apply_results_data(
     )
     normalize_run_detail_summary_metrics(generated["run_details"])
     run_details.update(generated["run_details"])
+
+
+def url_prefix_for_version(version_name: str, default_version: str | None) -> str:
+    """Keep the default/current snapshot on the historical root URLs."""
+    if not version_name or version_name == default_version:
+        return ""
+    return f"/{version_name}"
+
+
+def prepare_pro_version(
+    base_site_config: dict,
+    snapshot: dict,
+    version: dict,
+    versions: list[dict],
+    default_version: str | None,
+) -> dict:
+    """Build a complete render context for one Pro benchmark snapshot."""
+    site_config = copy.deepcopy(base_site_config)
+    generated = copy.deepcopy(snapshot)
+    run_details = {}
+
+    apply_results_data(site_config, run_details, generated)
+    normalize_run_detail_summary_metrics(run_details)
+
+    active_version = dict(version)
+    version_name = active_version.get("name", "")
+    url_prefix = url_prefix_for_version(version_name, default_version)
+    site_config["active_version"] = active_version
+    site_config["versions"] = versions
+    site_config["default_version"] = default_version
+
+    apply_target_urls(site_config, url_prefix)
+    attach_run_detail_urls(site_config, run_details, url_prefix)
+
+    return {
+        "name": version_name,
+        "meta": active_version,
+        "url_prefix": url_prefix,
+        "leaderboards_data": site_config,
+        "run_details": run_details,
+        "pro_stats": leaderboard_mode_stats(site_config, "pro"),
+    }
+
+
+def build_version_links(
+    pro_versions: list[dict],
+    active_version: str,
+    active_leaderboard: str | None,
+) -> list[dict]:
+    links = []
+    for version in pro_versions:
+        site_config = version["leaderboards_data"]
+        target_by_leaderboard = target_for_leaderboard(site_config)
+        target_urls = {
+            leaderboard_name: target.get("url", "/")
+            for leaderboard_name, target in target_by_leaderboard.items()
+        }
+        target = target_by_leaderboard.get(active_leaderboard or "overall")
+        unavailable = False
+        if target is None:
+            target = target_by_leaderboard.get("overall")
+            unavailable = True
+
+        version_meta = version["meta"]
+        base_title = version_meta.get("title") or version_meta.get("name", "")
+        title = base_title
+        if unavailable and active_leaderboard:
+            title = f"{title} - opens Overall; selected target is not in this snapshot"
+
+        links.append(
+            {
+                "name": version_meta.get("name", ""),
+                "base_title": base_title,
+                "title": title,
+                "url": target.get("url", "/") if target else "/",
+                "target_urls": target_urls,
+                "active": version["name"] == active_version,
+                "unavailable": unavailable,
+            }
+        )
+    return links
 
 
 def normalize_legacy_leaderboards(site_config: dict) -> dict:
@@ -621,7 +749,34 @@ def target_for_leaderboard(site_config: dict) -> dict:
     return mapping
 
 
-def attach_run_detail_urls(site_config: dict, run_details: dict):
+def normalize_url_prefix(url_prefix: str = "") -> str:
+    prefix = (url_prefix or "").strip()
+    if not prefix:
+        return ""
+    return "/" + prefix.strip("/")
+
+
+def target_url(target_name: str, url_prefix: str = "") -> str:
+    prefix = normalize_url_prefix(url_prefix)
+    if target_name == "overall":
+        return f"{prefix}/" if prefix else "/"
+    return f"{prefix}/{target_name}" if prefix else f"/{target_name}"
+
+
+def detail_url(target_name: str, slug: str, url_prefix: str = "") -> str:
+    prefix = normalize_url_prefix(url_prefix)
+    path = f"/{target_name}/runs/{slug}"
+    return f"{prefix}{path}" if prefix else path
+
+
+def apply_target_urls(site_config: dict, url_prefix: str = ""):
+    for target in site_config.get("target_tabs", []):
+        if not target.get("name"):
+            continue
+        target["url"] = target_url(target["name"], url_prefix)
+
+
+def attach_run_detail_urls(site_config: dict, run_details: dict, url_prefix: str = ""):
     """Annotate leaderboard rows with clean detail URLs when detail data exists."""
     target_by_leaderboard = target_for_leaderboard(site_config)
 
@@ -661,7 +816,7 @@ def attach_run_detail_urls(site_config: dict, run_details: dict):
                 continue
 
             result["details_available"] = True
-            result["details_url"] = f"/{target['name']}/runs/{slug}"
+            result["details_url"] = detail_url(target["name"], slug, url_prefix)
             result["details_summary"] = detail.get("summary", {})
 
 
@@ -912,8 +1067,8 @@ def render_base_html_stdlib(
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{asset_prefix}css/core.css?v=6">
     <link rel="stylesheet" href="{asset_prefix}css/layout.css?v=15">
-    <link rel="stylesheet" href="{asset_prefix}css/components.css?v=17">
-    <link rel="stylesheet" href="{asset_prefix}css/filters.css?v=3">
+    <link rel="stylesheet" href="{asset_prefix}css/components.css?v=18">
+    <link rel="stylesheet" href="{asset_prefix}css/filters.css?v=6">
     <link rel="stylesheet" href="{asset_prefix}css/sidebar.css?v=5">
 </head>
 <body data-leaderboard-mode="pro">
@@ -949,7 +1104,7 @@ def render_base_html_stdlib(
     </footer>
     <script src="{asset_prefix}js/dark-mode.js?v=4"></script>
     <script src="{asset_prefix}js/multiselect-dropdown.js?v=2"></script>
-    <script src="{asset_prefix}js/leaderboard.js?v=4"></script>
+    <script src="{asset_prefix}js/leaderboard.js?v=6"></script>
     <script src="{asset_prefix}js/filters.js?v=3"></script>
     <script src="{asset_prefix}js/footnotes.js?v=2"></script>
     <script src="{asset_prefix}js/sidebar.js?v=5"></script>
@@ -1031,6 +1186,31 @@ def render_info_panels_stdlib(leaderboards: list[dict], active_leaderboard: str)
     return f'<div class="leaderboard-info-panels">{"".join(panels)}</div>'
 
 
+def render_version_tabs_stdlib(version_links: list[dict]) -> str:
+    if not version_links:
+        return ""
+
+    options = []
+    for version in version_links:
+        target_attrs = "".join(
+            f' data-version-url-{esc(target_name)}="{esc(target_url)}"'
+            for target_name, target_url in (version.get("target_urls") or {}).items()
+        )
+        selected = " selected" if version.get("active") else ""
+        options.append(
+            f'<option value="{esc(version.get("url", "/"))}" '
+            f'data-version-title="{esc(version.get("base_title") or version.get("title", ""))}"'
+            f'{target_attrs}{selected}>{esc(version.get("name", ""))}</option>'
+        )
+
+    return (
+        '<div class="filter-group version-filter-group" aria-label="Benchmark version">'
+        '<label class="filter-label">Version</label>'
+        f'<select class="version-select" data-version-select aria-label="Benchmark version">{"".join(options)}</select>'
+        "</div>"
+    )
+
+
 def render_leaderboard_panel_stdlib(
     mode: str,
     leaderboards: list[dict],
@@ -1042,6 +1222,7 @@ def render_leaderboard_panel_stdlib(
     panel_section_description: str,
     stats: list[dict],
     supports_score_modes: bool,
+    version_links: list[dict] | None = None,
 ) -> str:
     active = default_leaderboard or (leaderboards[0]["name"] if leaderboards else "")
     tab_buttons = []
@@ -1053,7 +1234,9 @@ def render_leaderboard_panel_stdlib(
         active_class = " active" if tab_name == active else ""
         url_attr = ""
         if mode == "pro":
-            url = "/" if target.get("name") == "overall" else f'/{target.get("name")}'
+            url = target.get("url") or (
+                "/" if target.get("name") == "overall" else f'/{target.get("name")}'
+            )
             url_attr = f' data-target-url="{esc(url)}"'
         logo = ""
         if target.get("logo"):
@@ -1066,10 +1249,12 @@ def render_leaderboard_panel_stdlib(
 
     score_tabs = ""
     if supports_score_modes:
-        score_tabs = """
-        <div class="score-mode-tabs" aria-label="Score basis">
+        score_tabs = f"""
+        <div class="leaderboard-view-controls">
+            <div class="score-mode-tabs" aria-label="Score basis">
             <button type="button" class="score-mode-tab active" data-score-mode="headline" aria-pressed="true"><span>Headline</span><small>fixed budget</small></button>
             <button type="button" class="score-mode-tab" data-score-mode="completed" aria-pressed="false"><span>Completed</span><small>within timeout</small></button>
+            </div>
         </div>"""
 
     panels = []
@@ -1079,9 +1264,10 @@ def render_leaderboard_panel_stdlib(
         has_open = any(result.get("open_source") for result in leaderboard.get("results", []))
         has_prop = any(not result.get("open_source") for result in leaderboard.get("results", []))
         filters = ""
+        version_filter = render_version_tabs_stdlib(version_links or []) if supports_score_modes else ""
+        type_filter = ""
         if has_open and has_prop:
-            filters = f"""
-            <div class="filter-controls">
+            type_filter = f"""
                 <div class="filter-group">
                     <label class="filter-label">Model Type</label>
                     <div class="filter-buttons" id="{esc(lb_name)}-type-filter">
@@ -1089,8 +1275,9 @@ def render_leaderboard_panel_stdlib(
                         <button class="filter-btn" data-filter="proprietary">Proprietary</button>
                         <button class="filter-btn" data-filter="open-source">Open model</button>
                     </div>
-                </div>
-            </div>"""
+                </div>"""
+        if version_filter or type_filter:
+            filters = f'<div class="filter-controls">{type_filter}{version_filter}</div>'
 
         extra_headers = '<th class="completed-col sortable" data-sort="completed">Completed</th>' if supports_score_modes else ""
         logs_header = "" if supports_score_modes else '<th class="logs-col">Artifacts</th>'
@@ -1249,6 +1436,7 @@ def render_index_body_stdlib(
     pro_stats: list[dict],
     legacy_stats: list[dict],
     all_leaderboards: list[dict],
+    version_links: list[dict] | None = None,
 ) -> str:
     legacy_leaderboards = legacy_config.get("leaderboards", [])
 
@@ -1264,6 +1452,7 @@ def render_index_body_stdlib(
         section_description,
         pro_stats,
         True,
+        version_links or [],
     )
     classic_panel = ""
     if legacy_leaderboards:
@@ -1370,7 +1559,7 @@ def render_run_detail_body_stdlib(detail: dict, target: dict, result: dict) -> s
 
     return f"""
 <div class="run-detail-page">
-    <section class="run-page-top"><a class="run-back-link" href="/{esc(target.get("name"))}">Back to {esc(target.get("display_name"))}</a></section>
+    <section class="run-page-top"><a class="run-back-link" href="{esc(target.get("url") or '/' + str(target.get("name", '')))}">Back to {esc(target.get("display_name"))}</a></section>
     <header class="run-hero">
         <div class="run-hero-main">
             <img class="run-org-logo" src="{esc(org_logo_filter(detail.get("org")))}" alt="{esc(detail.get("org"))}">
@@ -1624,26 +1813,65 @@ def prepare_site_data(base_dir: Path):
     data_dir = base_dir / "data"
     content_dir = base_dir / "content"
 
-    leaderboards_data = load_yaml_data(data_dir / "leaderboards.yaml")
+    base_leaderboards_data = load_yaml_data(data_dir / "leaderboards.yaml")
     citations_data = load_citations_data(data_dir / "citations.yaml")
-    resource_links = normalize_resource_links(leaderboards_data)
+    resource_links = normalize_resource_links(base_leaderboards_data)
     markdown_content = load_markdown_content(content_dir, resource_links)
-    run_details = {}
-    generated = load_results_data(data_dir)
-    if generated:
-        apply_results_data(
-            leaderboards_data,
-            run_details,
-            generated,
+    results_bundle = load_results_data(data_dir)
+    pro_versions = []
+
+    if results_bundle:
+        versions = results_bundle.get("versions", [])
+        snapshots = results_bundle.get("snapshots", {})
+        default_version = results_bundle.get("default_version")
+        for version in versions:
+            name = version.get("name")
+            snapshot = snapshots.get(name)
+            if not name or not snapshot:
+                continue
+            pro_versions.append(
+                prepare_pro_version(
+                    base_leaderboards_data,
+                    snapshot,
+                    version,
+                    versions,
+                    default_version,
+                )
+            )
+
+    if pro_versions:
+        default_version_name = results_bundle.get("default_version")
+        active_pro_version = next(
+            (
+                version
+                for version in pro_versions
+                if version.get("name") == default_version_name
+            ),
+            pro_versions[-1],
         )
-    normalize_run_detail_summary_metrics(run_details)
-    attach_run_detail_urls(leaderboards_data, run_details)
+        leaderboards_data = active_pro_version["leaderboards_data"]
+        run_details = active_pro_version["run_details"]
+        pro_stats = active_pro_version["pro_stats"]
+    else:
+        leaderboards_data = copy.deepcopy(base_leaderboards_data)
+        run_details = {}
+        apply_target_urls(leaderboards_data)
+        attach_run_detail_urls(leaderboards_data, run_details)
+        active_pro_version = {
+            "name": "",
+            "meta": {},
+            "url_prefix": "",
+            "leaderboards_data": leaderboards_data,
+            "run_details": run_details,
+            "pro_stats": leaderboard_mode_stats(leaderboards_data, "pro"),
+        }
+        pro_versions = [active_pro_version]
+
     legacy_config = normalize_legacy_leaderboards(
         leaderboards_data.get("legacy", {})
         if isinstance(leaderboards_data.get("legacy"), dict)
         else {}
     )
-    pro_stats = leaderboard_mode_stats(leaderboards_data, "pro")
     legacy_stats = leaderboard_mode_stats(legacy_config, "classic")
     all_leaderboards = leaderboards_data["leaderboards"] + legacy_config.get(
         "leaderboards", []
@@ -1658,6 +1886,8 @@ def prepare_site_data(base_dir: Path):
         "pro_stats": pro_stats,
         "legacy_stats": legacy_stats,
         "all_leaderboards": all_leaderboards,
+        "pro_versions": pro_versions,
+        "active_pro_version": active_pro_version,
     }
 
 
@@ -1675,16 +1905,15 @@ def build_site_stdlib():
     markdown_content = data["markdown_content"]
     run_details = data["run_details"]
     legacy_config = data["legacy_config"]
-    pro_stats = data["pro_stats"]
     legacy_stats = data["legacy_stats"]
-    all_leaderboards = data["all_leaderboards"]
+    pro_versions = data["pro_versions"]
 
     leaderboard_count = len(leaderboards_data["leaderboards"]) + len(
         legacy_config.get("leaderboards", [])
     )
     print(f"✓ Loaded {leaderboard_count} leaderboards")
     print(f"✓ Loaded {len(citations_data)} citation tabs")
-    print(f"✓ Loaded {len(run_details)} run detail files")
+    print(f"✓ Loaded {sum(len(version['run_details']) for version in pro_versions)} versioned run detail files")
 
     if dist_dir.exists():
         shutil.rmtree(dist_dir)
@@ -1706,16 +1935,31 @@ def build_site_stdlib():
 
     print("\nRendering pages...")
 
-    def render_leaderboard_page(output_file: Path, initial_leaderboard: str | None, asset_prefix: str):
+    def render_leaderboard_page(
+        version_context: dict,
+        output_file: Path,
+        initial_leaderboard: str | None,
+        asset_prefix: str,
+    ):
+        version_site_config = version_context["leaderboards_data"]
+        version_all_leaderboards = version_site_config["leaderboards"] + legacy_config.get(
+            "leaderboards", []
+        )
+        version_links = build_version_links(
+            pro_versions,
+            version_context["name"],
+            initial_leaderboard,
+        )
         body = render_index_body_stdlib(
-            leaderboards_data,
+            version_site_config,
             legacy_config,
             section_title,
             section_description,
             initial_leaderboard,
-            pro_stats,
+            version_context["pro_stats"],
             legacy_stats,
-            all_leaderboards,
+            version_all_leaderboards,
+            version_links,
         )
         html_text = render_base_html_stdlib(
             website_title,
@@ -1730,51 +1974,69 @@ def build_site_stdlib():
         output_file.write_text(html_text, encoding="utf-8")
         print(f"✓ Rendered {output_file.relative_to(dist_dir)}")
 
-    default_leaderboard = (
-        leaderboards_data["leaderboards"][0]["name"]
-        if leaderboards_data["leaderboards"]
-        else None
-    )
-    render_leaderboard_page(dist_dir / "index.html", default_leaderboard, "")
+    def version_output_root(version_context: dict) -> Path:
+        prefix = normalize_url_prefix(version_context.get("url_prefix", "")).strip("/")
+        return dist_dir / prefix if prefix else dist_dir
 
-    for target in available_target_tabs(leaderboards_data):
-        if target["name"] == "overall":
-            continue
+    def version_asset_prefix(version_context: dict, depth_from_version_root: int) -> str:
+        version_depth = 1 if normalize_url_prefix(version_context.get("url_prefix", "")) else 0
+        depth = version_depth + depth_from_version_root
+        return "../" * depth
+
+    for version_context in pro_versions:
+        version_site_config = version_context["leaderboards_data"]
+        version_root = version_output_root(version_context)
+        default_leaderboard = (
+            version_site_config["leaderboards"][0]["name"]
+            if version_site_config["leaderboards"]
+            else None
+        )
         render_leaderboard_page(
-            dist_dir / target["name"] / "index.html",
-            target.get("leaderboard") or target.get("name"),
-            "../",
+            version_context,
+            version_root / "index.html",
+            default_leaderboard,
+            version_asset_prefix(version_context, 0),
         )
 
-    target_by_name = {
-        target["name"]: target for target in available_target_tabs(leaderboards_data)
-    }
-    for leaderboard in leaderboards_data.get("leaderboards", []):
-        target = target_by_name.get(leaderboard.get("name"))
-        if not target:
-            continue
-        for result in leaderboard.get("results", []):
-            details = result.get("details") if isinstance(result.get("details"), dict) else None
-            if not details or not result.get("details_available"):
+        for target in available_target_tabs(version_site_config):
+            if target["name"] == "overall":
                 continue
-            slug = details.get("slug")
-            detail = run_details.get((target["name"], slug))
-            if not detail:
-                continue
-            body = render_run_detail_body_stdlib(detail, target, result)
-            html_text = render_base_html_stdlib(
-                f"{detail['model']} - {target['display_name']}",
-                body,
-                markdown_content,
-                footer_links,
-                current_year,
-                asset_prefix="../../../",
-                website_subtitle=website_subtitle,
+            render_leaderboard_page(
+                version_context,
+                version_root / target["name"] / "index.html",
+                target.get("leaderboard") or target.get("name"),
+                version_asset_prefix(version_context, 1),
             )
-            output_file = dist_dir / target["name"] / "runs" / slug / "index.html"
-            output_file.parent.mkdir(parents=True, exist_ok=True)
-            output_file.write_text(html_text, encoding="utf-8")
-            print(f"✓ Rendered {output_file.relative_to(dist_dir)}")
+
+        target_by_name = {
+            target["name"]: target for target in available_target_tabs(version_site_config)
+        }
+        for leaderboard in version_site_config.get("leaderboards", []):
+            target = target_by_name.get(leaderboard.get("name"))
+            if not target:
+                continue
+            for result in leaderboard.get("results", []):
+                details = result.get("details") if isinstance(result.get("details"), dict) else None
+                if not details or not result.get("details_available"):
+                    continue
+                slug = details.get("slug")
+                detail = version_context["run_details"].get((target["name"], slug))
+                if not detail:
+                    continue
+                body = render_run_detail_body_stdlib(detail, target, result)
+                html_text = render_base_html_stdlib(
+                    f"{detail['model']} - {target['display_name']}",
+                    body,
+                    markdown_content,
+                    footer_links,
+                    current_year,
+                    asset_prefix=version_asset_prefix(version_context, 3),
+                    website_subtitle=website_subtitle,
+                )
+                output_file = version_root / target["name"] / "runs" / slug / "index.html"
+                output_file.parent.mkdir(parents=True, exist_ok=True)
+                output_file.write_text(html_text, encoding="utf-8")
+                print(f"✓ Rendered {output_file.relative_to(dist_dir)}")
 
     citation_body, citation_script = render_citations_body_stdlib(citations_data)
     pages = {
@@ -1827,11 +2089,9 @@ def build_site():
     leaderboards_data = data["leaderboards_data"]
     citations_data = data["citations_data"]
     markdown_content = data["markdown_content"]
-    run_details = data["run_details"]
     legacy_config = data["legacy_config"]
-    pro_stats = data["pro_stats"]
     legacy_stats = data["legacy_stats"]
-    all_leaderboards = data["all_leaderboards"]
+    pro_versions = data["pro_versions"]
 
     leaderboard_count = len(leaderboards_data["leaderboards"])
     leaderboard_count += len(legacy_config.get("leaderboards", []))
@@ -1839,7 +2099,7 @@ def build_site():
     print(f"✓ Loaded {leaderboard_count} leaderboards")
     print(f"✓ Loaded {len(citations_data)} citation tabs")
     print(f"✓ Loaded {len(markdown_content)} markdown content files")
-    print(f"✓ Loaded {len(run_details)} run detail files")
+    print(f"✓ Loaded {sum(len(version['run_details']) for version in pro_versions)} versioned run detail files")
 
     # Setup Jinja2 environment
     env = Environment(loader=FileSystemLoader(templates_dir))
@@ -1881,16 +2141,12 @@ def build_site():
     )
 
     # Common template context
-    common_context = {
+    base_context = {
         "content": markdown_content,
         "footer_links": footer_links,
         "website_title": website_title,
         "website_subtitle": website_subtitle,
-        "leaderboard_items": leaderboards_data["leaderboards"],
-        "site_config": leaderboards_data,
         "legacy_config": legacy_config,
-        "all_leaderboards": all_leaderboards,
-        "pro_stats": pro_stats,
         "legacy_stats": legacy_stats,
         "citations": citations_data,
         "current_year": datetime.now().year,
@@ -1902,80 +2158,127 @@ def build_site():
     template = env.get_template("index.html")
 
     def render_leaderboard_page(
-        output_file: Path, initial_leaderboard: str | None, asset_prefix: str
+        version_context: dict,
+        output_file: Path,
+        initial_leaderboard: str | None,
+        asset_prefix: str,
     ):
+        version_site_config = version_context["leaderboards_data"]
+        version_all_leaderboards = version_site_config["leaderboards"] + legacy_config.get(
+            "leaderboards", []
+        )
+        version_links = build_version_links(
+            pro_versions,
+            version_context["name"],
+            initial_leaderboard,
+        )
+        context = {
+            **base_context,
+            "leaderboard_items": version_site_config["leaderboards"],
+            "site_config": version_site_config,
+            "all_leaderboards": version_all_leaderboards,
+            "pro_stats": version_context["pro_stats"],
+            "asset_prefix": asset_prefix,
+            "version_links": version_links,
+        }
         html = template.render(
-            leaderboards=leaderboards_data["leaderboards"],
+            leaderboards=version_site_config["leaderboards"],
             legacy_leaderboards=legacy_config.get("leaderboards", []),
             section_title=section_title,
             section_description=section_description,
             initial_leaderboard=initial_leaderboard,
-            asset_prefix=asset_prefix,
-            **{k: v for k, v in common_context.items() if k != "asset_prefix"},
+            **context,
         )
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(html)
         print(f"✓ Rendered {output_file.relative_to(dist_dir)}")
 
-    default_leaderboard = (
-        leaderboards_data["leaderboards"][0]["name"]
-        if leaderboards_data["leaderboards"]
-        else None
-    )
-    render_leaderboard_page(dist_dir / "index.html", default_leaderboard, "")
+    detail_template = env.get_template("run_detail.html")
 
-    for target in available_target_tabs(leaderboards_data):
-        if target["name"] == "overall":
-            continue
+    def version_output_root(version_context: dict) -> Path:
+        prefix = normalize_url_prefix(version_context.get("url_prefix", "")).strip("/")
+        return dist_dir / prefix if prefix else dist_dir
+
+    def version_asset_prefix(version_context: dict, depth_from_version_root: int) -> str:
+        version_depth = 1 if normalize_url_prefix(version_context.get("url_prefix", "")) else 0
+        depth = version_depth + depth_from_version_root
+        return "../" * depth
+
+    for version_context in pro_versions:
+        version_site_config = version_context["leaderboards_data"]
+        version_root = version_output_root(version_context)
+        default_leaderboard = (
+            version_site_config["leaderboards"][0]["name"]
+            if version_site_config["leaderboards"]
+            else None
+        )
         render_leaderboard_page(
-            dist_dir / target["name"] / "index.html",
-            target.get("leaderboard") or target.get("name"),
-            "../",
+            version_context,
+            version_root / "index.html",
+            default_leaderboard,
+            version_asset_prefix(version_context, 0),
         )
 
-    # Render run detail pages
-    detail_template = env.get_template("run_detail.html")
-    target_by_name = {
-        target["name"]: target for target in available_target_tabs(leaderboards_data)
-    }
-    for leaderboard in leaderboards_data.get("leaderboards", []):
-        target = target_by_name.get(leaderboard.get("name"))
-        if not target:
-            continue
-
-        for result in leaderboard.get("results", []):
-            details = (
-                result.get("details")
-                if isinstance(result.get("details"), dict)
-                else None
+        for target in available_target_tabs(version_site_config):
+            if target["name"] == "overall":
+                continue
+            render_leaderboard_page(
+                version_context,
+                version_root / target["name"] / "index.html",
+                target.get("leaderboard") or target.get("name"),
+                version_asset_prefix(version_context, 1),
             )
-            if not details or not result.get("details_available"):
+
+        # Render run detail pages
+        target_by_name = {
+            target["name"]: target for target in available_target_tabs(version_site_config)
+        }
+        for leaderboard in version_site_config.get("leaderboards", []):
+            target = target_by_name.get(leaderboard.get("name"))
+            if not target:
                 continue
 
-            slug = details.get("slug")
-            detail = run_details.get((target["name"], slug))
-            if not detail:
-                continue
+            for result in leaderboard.get("results", []):
+                details = (
+                    result.get("details")
+                    if isinstance(result.get("details"), dict)
+                    else None
+                )
+                if not details or not result.get("details_available"):
+                    continue
 
-            html = detail_template.render(
-                detail=detail,
-                target=target,
-                result=result,
-                page_title=f"{detail['model']} - {target['display_name']}",
-                asset_prefix="../../../",
-                **{k: v for k, v in common_context.items() if k != "asset_prefix"},
-            )
-            output_file = dist_dir / target["name"] / "runs" / slug / "index.html"
-            output_file.parent.mkdir(parents=True, exist_ok=True)
-            output_file.write_text(html)
-            print(f"✓ Rendered {output_file.relative_to(dist_dir)}")
+                slug = details.get("slug")
+                detail = version_context["run_details"].get((target["name"], slug))
+                if not detail:
+                    continue
+
+                html = detail_template.render(
+                    detail=detail,
+                    target=target,
+                    result=result,
+                    page_title=f"{detail['model']} - {target['display_name']}",
+                    asset_prefix=version_asset_prefix(version_context, 3),
+                    **{k: v for k, v in base_context.items() if k != "asset_prefix"},
+                )
+                output_file = version_root / target["name"] / "runs" / slug / "index.html"
+                output_file.parent.mkdir(parents=True, exist_ok=True)
+                output_file.write_text(html)
+                print(f"✓ Rendered {output_file.relative_to(dist_dir)}")
 
     # Render additional pages
     additional_pages = ["citations.html", "contact.html", "submit.html"]
     for page_name in additional_pages:
         try:
             template = env.get_template(f"pages/{page_name}")
-            html = template.render(**common_context)
+            html = template.render(
+                **{
+                    **base_context,
+                    "leaderboard_items": leaderboards_data["leaderboards"],
+                    "site_config": leaderboards_data,
+                    "all_leaderboards": data["all_leaderboards"],
+                    "pro_stats": data["pro_stats"],
+                }
+            )
             output_file = dist_dir / page_name
             output_file.write_text(html)
             print(f"✓ Rendered {page_name}")

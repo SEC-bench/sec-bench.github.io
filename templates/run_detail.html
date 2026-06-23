@@ -9,7 +9,7 @@ data-headline="{{ headline }}{{ suffix }}" data-completed="{{ completed }}{{ suf
 {% block content %}
 <div class="run-detail-page">
     <section class="run-page-top">
-        <a class="run-back-link" href="/{{ target.name }}">Back to {{ target.display_name }}</a>
+        <a class="run-back-link" href="{{ target.url or '/' ~ target.name }}">Back to {{ target.display_name }}</a>
     </section>
 
     <header class="run-hero">

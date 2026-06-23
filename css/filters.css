@@ -30,14 +30,18 @@
 }
 
 .filter-btn {
+    align-items: center;
     background: transparent;
     border: 1px solid var(--rule);
     color: var(--ink-2);
     cursor: pointer;
+    display: inline-flex;
     font-family: var(--sans);
     font-size: 12px;
     font-weight: 700;
+    line-height: 1.2;
     padding: 7px 10px;
+    text-decoration: none;
 }
 
 .filter-btn:hover,
@@ -51,6 +55,46 @@
     background: var(--ink);
     border-color: var(--ink);
     color: var(--bg);
+}
+
+.version-filter-group {
+    margin-left: auto;
+}
+
+.version-select {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-2);
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    min-height: 31px;
+    min-width: 0;
+    padding: 7px 24px 7px 9px;
+    width: 92px;
+}
+
+.version-select:hover,
+.version-select:focus-visible {
+    border-color: var(--ink);
+    color: var(--ink);
+    outline: 0;
+}
+
+.version-select-fallback {
+    color: var(--ink-3);
+}
+
+.version-select option {
+    background: #ffffff;
+    color: #18181b;
+}
+
+.version-select option:checked {
+    background: #e4e4e7;
+    color: #18181b;
 }
 
 .filter-summary {
@@ -81,6 +125,14 @@
     .filter-buttons {
         align-items: stretch;
         flex-direction: column;
+        width: 100%;
+    }
+
+    .version-filter-group {
+        margin-left: 0;
+    }
+
+    .version-select {
         width: 100%;
     }
 }
