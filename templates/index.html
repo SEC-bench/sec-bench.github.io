@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}{{ website_title }}{% endblock %}
+
+{% macro score_mode_attrs(result, mode) -%}
+data-{{ mode }}-score="{{ result.score_modes[mode].score }}"
+data-{{ mode }}-rank="{{ result.score_modes[mode].rank }}"
+data-{{ mode }}-score-label="{{ result.score_modes[mode].score_label }}"
+data-{{ mode }}-count="{{ result.score_modes[mode].solved }}/{{ result.score_modes[mode].total }}"
+data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_modes.headline.total }}"
+{%- endmacro %}
+
+{% macro render_stats(stats) %}
+<div class="stats-strip" aria-label="Benchmark summary">
+    {% for stat in stats %}
+    <div class="stat">
+        <div class="stat-num">{{ stat.value }}</div>
+        <div class="stat-label">{{ stat.label }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro render_score_bar(result, leaderboard, supports_score_modes) %}
+<div class="score-cell">
+    {% if supports_score_modes %}
+    <div class="score-number" data-score-value>{{ result.score_modes.headline.score }}%</div>
+    <div class="score-count" data-count-value>{{ result.score_modes.headline.solved }}/{{ result.score_modes.headline.total }}</div>
+    {% if leaderboard.is_overall and result.projects %}
+    <div class="split-score-bar" aria-label="Project contribution split">
+        {% for part in result.projects %}
+        <span class="score-segment score-segment-{{ part.name }}"
+              style="width: {{ part.score_modes.headline.width }}%"
+              data-headline-width="{{ part.score_modes.headline.width }}"
+              data-completed-width="{{ part.score_modes.completed.width }}"
+              data-headline-title="{{ part.label }}: {{ part.score_modes.headline.score_label }}"
+              data-completed-title="{{ part.label }}: {{ part.score_modes.completed.score_label }}"
+              title="{{ part.label }}: {{ part.score_modes.headline.score_label }}"></span>
+        {% endfor %}
+    </div>
+    <div class="split-legend">
+        {% for part in result.projects %}
+        <span><i class="legend-dot score-segment-{{ part.name }}"></i>{{ part.label }}</span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="score-bar-track">
+        <span class="score-bar-fill" style="width: {{ result.score_modes.headline.score }}%"></span>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="score-number">{{ result.resolved | format_percent }}</div>
+    <div class="score-count">{{ result.score_label or 'resolved' }}</div>
+    <div class="score-bar-track">
+        <span class="score-bar-fill" style="width: {{ result.resolved }}%"></span>
+    </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro render_info_panels(leaderboards, active_leaderboard) %}
+<div class="leaderboard-info-panels">
+    {% for leaderboard in leaderboards %}
+    {% if leaderboard.info_sections %}
+    <div class="leaderboard-info-grid"
+         data-info-panel="{{ leaderboard.name }}"
+         {% if leaderboard.name != active_leaderboard %}style="display: none;"{% endif %}>
+        {% for info in leaderboard.info_sections %}
+        <article class="leaderboard-info">
+            <h3>{{ info.title }}</h3>
+            <div class="leaderboard-info-content">{{ info.content | safe }}</div>
+        </article>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro render_leaderboard_panel(mode, leaderboards, target_tabs, default_leaderboard, panel_title, panel_subtitle, panel_section_title, panel_section_description, stats, supports_score_modes) %}
+{% set active_leaderboard = default_leaderboard or leaderboards[0].name %}
+<section class="hero">
+    <div class="container wide">
+        <h1 class="title">{{ panel_title }}</h1>
+        <p class="lede">{{ panel_subtitle }}</p>
+    </div>
+</section>
+
+<section class="leaderboard-section">
+    <div class="container wide">
+        <div class="section-head">
+            <h2 class="section-title">{{ panel_section_title }}</h2>
+        </div>
+        <p class="section-note">{{ panel_section_description | safe }}</p>
+
+        <div class="leaderboard-shell">
+            <div class="leaderboard-toolbar">
+                <div class="target-tabs" role="tablist" aria-label="{{ panel_title }} leaderboards">
+                    {% for target in target_tabs %}
+                    {% set tab_name = target.leaderboard or target.name %}
+                    <button class="tab-button target-tab-button {% if tab_name == active_leaderboard %}active{% endif %}"
+                            data-tab="{{ tab_name }}"
+                            data-target-description="{{ target.description | e }}"
+                            {% if mode == 'pro' %}data-target-url="{% if target.name == 'overall' %}/{% else %}/{{ target.name }}{% endif %}"{% endif %}
+                            role="tab">
+                        {% if target.logo %}
+                        <img class="target-tab-logo" src="{{ target.logo }}" alt="" aria-hidden="true">
+                        {% endif %}
+                        <span>{{ target.display_name }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                {% if supports_score_modes %}
+                <div class="score-mode-tabs" aria-label="Score basis">
+                    <button type="button" class="score-mode-tab active" data-score-mode="headline" aria-pressed="true">
+                        <span>Headline</span>
+                        <small>fixed budget</small>
+                    </button>
+                    <button type="button" class="score-mode-tab" data-score-mode="completed" aria-pressed="false">
+                        <span>Completed</span>
+                        <small>within timeout</small>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <p class="target-description" data-target-description-container>
+                {% for target in target_tabs %}
+                    {% set tab_name = target.leaderboard or target.name %}
+                    {% if tab_name == active_leaderboard %}{{ target.description | safe }}{% endif %}
+                {% endfor %}
+            </p>
+
+            <div class="leaderboard-container">
+                {% for leaderboard in leaderboards %}
+                <div class="leaderboard-content"
+                     id="{{ leaderboard.name }}-content"
+                     data-leaderboard-panel="{{ leaderboard.name }}"
+                     {% if leaderboard.name != active_leaderboard %}style="display: none;"{% endif %}>
+                    {% set has_open = leaderboard.results | selectattr('open_source') | list | length > 0 %}
+                    {% set has_prop = leaderboard.results | rejectattr('open_source') | list | length > 0 %}
+
+                    {% if has_open and has_prop %}
+                    <div class="filter-controls">
+                        <div class="filter-group">
+                            <label class="filter-label">Model Type</label>
+                            <div class="filter-buttons" id="{{ leaderboard.name }}-type-filter">
+                                <button class="filter-btn active" data-filter="all">All</button>
+                                <button class="filter-btn" data-filter="proprietary">Proprietary</button>
+                                <button class="filter-btn" data-filter="open-source">Open model</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="table-container">
+                        <table class="leaderboard-table" id="{{ leaderboard.name }}-table">
+                            <thead>
+                                <tr>
+                                    <th class="rank-col sortable active asc" data-sort="rank">#</th>
+                                    <th class="model-col sortable" data-sort="model">{{ 'Model' if supports_score_modes else 'System' }}</th>
+                                    <th class="resolved-col sortable active desc" data-sort="resolved">{{ 'Success' if supports_score_modes else 'Score' }}</th>
+                                    {% if supports_score_modes %}
+                                    <th class="completed-col sortable" data-sort="completed">Completed</th>
+                                    {% endif %}
+                                    <th class="org-col sortable" data-sort="org">Provider</th>
+                                    <th class="date-col sortable" data-sort="date">Date</th>
+                                    {% if not supports_score_modes %}
+                                    <th class="logs-col">Artifacts</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in leaderboard.results %}
+                                <tr class="leaderboard-row {% if result.details_url %}leaderboard-row-clickable{% endif %}"
+                                    data-scored="true"
+                                    data-type="{% if result.open_source %}open-source{% else %}proprietary{% endif %}"
+                                    data-model="{% if supports_score_modes %}{{ result.model }}{% if result.effort %} {{ result.effort }}{% endif %} {{ result.agent }}{% else %}{{ result.model }}{% endif %}"
+                                    data-resolved="{% if supports_score_modes %}{{ result.score_modes.headline.score }}{% else %}{{ result.resolved }}{% endif %}"
+                                    data-rank="{{ result.rank }}"
+                                    {% if supports_score_modes %}data-completed="{{ result.completed_instances }}"{% endif %}
+                                    data-org="{{ result.org }}"
+                                    data-date="{{ result.date or '' }}"
+                                    {% if supports_score_modes %}
+                                    {{ score_mode_attrs(result, 'headline') }}
+                                    {{ score_mode_attrs(result, 'completed') }}
+                                    {% endif %}
+                                    {% if result.details_url %}data-details-url="{{ result.details_url }}" tabindex="0" role="link" aria-label="View run details for {{ result.model }} by {{ result.agent }}"{% endif %}>
+                                    <td class="rank-col" data-label="#">
+                                        <span class="rank-badge" data-rank-value>{{ result.rank }}</span>
+                                    </td>
+                                    <td class="model-col" data-label="{{ 'Model' if supports_score_modes else 'System' }}">
+                                        <div class="model-name">
+                                            <img class="org-logo" src="{{ result.org | org_logo }}" alt="{{ result.org }}" title="{{ result.org }}">
+                                            <div class="model-name-stack">
+                                                {% if supports_score_modes %}
+                                                    {% set pro_model_label %}{{ result.model }}{% if result.effort %} ({{ result.effort }}){% endif %}{% endset %}
+                                                    {% if result.details_url %}
+                                                    <a class="model-name-text model-detail-link" href="{{ result.details_url }}">{{ pro_model_label }}</a>
+                                                    {% else %}
+                                                    <span class="model-name-text">{{ pro_model_label }}</span>
+                                                    {% endif %}
+                                                    <span class="model-meta">{{ result.agent }}</span>
+                                                {% else %}
+                                                    <span class="model-name-text">{{ result.model }}</span>
+                                                {% endif %}
+                                            </div>
+                                            {% if result.open_source %}
+                                            <span class="badge badge-oss" title="Open model">Open</span>
+                                            {% endif %}
+                                            {% if not supports_score_modes and result.verified %}
+                                            <span class="badge badge-verified" title="Verified">Verified</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="resolved-col" data-label="{{ 'Success' if supports_score_modes else 'Score' }}">
+                                        {{ render_score_bar(result, leaderboard, supports_score_modes) }}
+                                    </td>
+                                    {% if supports_score_modes %}
+                                    <td class="completed-col" data-label="Completed">
+                                        <strong data-completed-value>{{ result.completed_instances }}/{{ result.score_modes.headline.total }}</strong>
+                                        <span>{{ result.timeouts }} timed out</span>
+                                    </td>
+                                    {% endif %}
+                                    <td class="org-col" data-label="Provider">
+                                        <span>{{ result.org }}</span>
+                                    </td>
+                                    <td class="date-col" data-label="Date">{{ result.date }}</td>
+                                    {% if not supports_score_modes %}
+                                    <td class="logs-col" data-label="Artifacts">
+                                        {% if result.logs_link %}
+                                        <a class="logs-link" href="{{ result.logs_link }}" target="_blank" rel="noopener noreferrer">Logs</a>
+                                        {% else %}
+                                        <span class="table-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="no-results" style="display: none;">
+                        <p>No models match the selected filters.</p>
+                    </div>
+
+                    {% if leaderboard.footnotes %}
+                    <div class="leaderboard-static-notes">
+                        {% for footnote in leaderboard.footnotes %}
+                        <p class="leaderboard-static-note"><span aria-hidden="true">*</span> {{ footnote }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="leaderboard-footnotes" id="{{ leaderboard.name }}-footnotes"></div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {{ render_info_panels(leaderboards, active_leaderboard) }}
+    </div>
+</section>
+{% endmacro %}
+
+{% block content %}
+{% set has_legacy = legacy_leaderboards | length > 0 %}
+
+<div class="mode-panels">
+    <div class="mode-panel mode-panel-active"
+         data-mode-panel="pro"
+         data-default-leaderboard="{{ initial_leaderboard or leaderboards[0].name }}">
+        {{ render_leaderboard_panel(
+            'pro',
+            leaderboards,
+            site_config.target_tabs,
+            initial_leaderboard,
+            website_title,
+            website_subtitle,
+            section_title,
+            section_description,
+            pro_stats,
+            true
+        ) }}
+    </div>
+
+    {% if has_legacy %}
+    <div class="mode-panel"
+         data-mode-panel="classic"
+         data-default-leaderboard="{{ legacy_leaderboards[0].name }}"
+         hidden>
+        {{ render_leaderboard_panel(
+            'classic',
+            legacy_leaderboards,
+            legacy_config.target_tabs,
+            legacy_leaderboards[0].name,
+            legacy_config.website_title,
+            legacy_config.website_subtitle,
+            legacy_config.section_title,
+            legacy_config.section_description,
+            legacy_stats,
+            false
+        ) }}
+    </div>
+    {% endif %}
+</div>
+
+<script type="application/json" id="leaderboard-data">
+{{ all_leaderboards | tojson }}
+</script>
+{% endblock %}

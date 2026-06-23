@@ -1,0 +1,237 @@
+website_title: SEC-bench Pro
+website_subtitle: Can Language Models Solve Long-Horizon Software Security Tasks?
+
+target_tabs:
+  - name: overall
+    display_name: Overall
+    leaderboard: overall
+    instances: 344
+    status: available
+    description: "<strong>Overall</strong> aggregates V8, Firefox, and Linux into a <strong>344</strong>-instance leaderboard. Split bars show how each project contributes to the score."
+  - name: v8
+    display_name: V8
+    logo: https://v8.dev/_img/v8.svg
+    leaderboard: v8
+    instances: 103
+    status: available
+    description: "<strong>V8</strong> is Google's open-source JavaScript and WebAssembly engine that powers Chrome and Node.js. The benchmark currently includes <strong>103</strong> instances."
+  - name: firefox
+    display_name: Firefox
+    logo: https://upload.wikimedia.org/wikipedia/commons/a/a0/Firefox_logo%2C_2019.svg
+    leaderboard: firefox
+    instances: 104
+    status: available
+    description: "<strong>Firefox</strong> tracks SpiderMonkey JavaScript and WebAssembly engine vulnerabilities. The benchmark currently includes <strong>104</strong> instances."
+  - name: linux
+    display_name: Linux
+    logo: https://upload.wikimedia.org/wikipedia/commons/3/35/Tux.svg
+    leaderboard: linux
+    instances: 137
+    status: available
+    description: "<strong>Linux</strong> evaluates kernel vulnerability discovery and PoC generation. The benchmark currently includes <strong>137</strong> instances."
+
+section_title: SEC-bench Pro
+section_description: >
+  SEC-bench Pro reports <code>source-files</code> leaderboards by target. The
+  bar shows the <strong>success</strong> rate: the share of instances that
+  satisfy <strong>two</strong> criteria: the PoC matches the expected crash
+  class in the vulnerable image, and the same PoC is blocked on that instance's
+  fixed build (differential PASS/FAIL).
+
+footer_links: []
+
+resource_links:
+  pro:
+    paper_url: https://arxiv.org/abs/2605.26548
+    code_url: https://github.com/SEC-bench/SEC-bench-Pro
+    data_url: https://huggingface.co/datasets/SEC-bench/SEC-bench-Pro
+    submit_url: null
+  classic:
+    paper_url: https://arxiv.org/abs/2506.11791
+    code_url: https://github.com/SEC-bench/SEC-bench
+    data_url: https://huggingface.co/datasets/SEC-bench/SEC-bench
+    submit_url: null
+
+pro_common_footnotes:
+  - Newer results for Claude Opus and Mythos models are not available due to safeguard restrictions.
+
+pro_common_info_sections: &pro_common_info_sections
+  - title: News
+    content: |
+      <ul>
+        <li><span style="font-weight: bold;">[June 17, 2026]:</span> Overall and Linux leaderboards are now built.</li>
+        <li><span style="font-weight: bold;">[May 5, 2026]:</span> SpiderMonkey leaderboard has been released.</li>
+        <li><span style="font-weight: bold;">[May 1, 2026]:</span> SEC-bench Pro launches with the V8 leaderboard.</li>
+      </ul>
+
+  - title: SEC-bench Pro Overview
+    content: |
+      SEC-bench Pro evaluates agents on vulnerability discovery and PoC generation tasks on challenging targets. Each target instance ships with a Docker image, metadata, a rendered prompt, and a harness. The harness renders the prompt from <code>meta.json</code>, starts the instance container, runs the configured agent with a timeout, and collects the generated files and run artifacts for checker evaluation.
+
+leaderboards:
+  - display_name: Overall
+    name: overall
+    info_sections: *pro_common_info_sections
+    description: Overall performance across V8, Firefox, and Linux.
+    instances: 344
+    is_overall: true
+    results: []
+  - display_name: V8
+    name: v8
+    info_sections: *pro_common_info_sections
+    description: V8 source-file leaderboard.
+    instances: 103
+    results: []
+  - display_name: Firefox
+    name: firefox
+    info_sections: *pro_common_info_sections
+    description: Firefox source-file leaderboard.
+    instances: 104
+    results: []
+  - display_name: Linux
+    name: linux
+    info_sections: *pro_common_info_sections
+    description: Linux source-file leaderboard.
+    instances: 137
+    results: []
+
+legacy:
+  website_title: SEC-bench
+  website_subtitle: Can LLM Agents Solve Critical Security Challenges?
+  section_title: Leaderboard
+  section_description: 'Performance of LLM agents on security engineering tasks.'
+  target_tabs:
+    - name: poc_generation
+      display_name: PoC Generation
+      leaderboard: poc_generation
+      status: available
+      description: '<em>PoC Generation</em> evaluates agents on generating working security proof-of-concepts for real vulnerabilities.'
+    - name: vulnerability_patching
+      display_name: Vulnerability Patching
+      leaderboard: vulnerability_patching
+      status: available
+      description: '<em>Vulnerability Patching</em> evaluates agents on producing patches for real security bugs.'
+  leaderboards:
+    - display_name: PoC Generation
+      info_sections:
+        - title: News
+          content: |
+            <ul>
+              <li><span style="font-weight: bold;">[Dec 2025]:</span> <strong><a href="https://issues.oss-fuzz.com/issues" target="_blank">OSS-Fuzz</a></strong> instances are now integrated into SEC-bench!</li>
+              <li><span style="font-weight: bold;">[Sep 2025]:</span> SEC-bench has been accepted to <strong><a href="https://nips.cc/Conferences/2025" target="_blank">NeurIPS 2025</a></strong>!</li>
+              <li><span style="font-weight: bold;">[June 2025]:</span> We release the SEC-bench benchmark with <strong>PoC Generation</strong> and <strong>Vulnerability Patching</strong> tasks.</li>
+            </ul>
+        - title: SEC-bench Overview
+          content: |
+            SEC-bench is the first fully automated benchmarking framework for evaluating LLM agents on authentic security engineering tasks.
+        - title: PoC Generation Task
+          content: |
+            PoC Generation evaluates the ability of LLM agents to craft proof-of-concept (PoC) artifacts that trigger specified vulnerabilities. A submission is considered successful only if it creates a working PoC artifact that triggers a valid sanitizer error.
+            <br><br>
+            <strong>Evaluation Modes:</strong>
+            <br><br>
+            SEC-bench supports three evaluation modes with varying levels of information provided to agents:
+            <table class="mode-table">
+              <thead>
+                <tr>
+                  <th>Mode</th>
+                  <th>Information Provided</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code class="mode-pill">poc-repo</code></td>
+                  <td>Repository only</td>
+                  <td>Agent receives only the vulnerable code. Must discover and validate the bug from scratch.</td>
+                </tr>
+                <tr>
+                  <td><code class="mode-pill">poc-desc</code></td>
+                  <td>Repository + Description</td>
+                  <td>Agent receives repository plus high-level vulnerability description.</td>
+                </tr>
+                <tr>
+                  <td><code class="mode-pill">poc-san</code></td>
+                  <td>Repository + Description + Sanitizer Report</td>
+                  <td>Agent receives all available information including crash stack trace.</td>
+                </tr>
+              </tbody>
+            </table>
+            <p><strong>Note:</strong> Current leaderboard results are evaluated using the <code class="mode-pill">poc-san</code> mode. Read more about evaluation modes in our <a href="https://hwiwonl.ee/blog/2025/sec-bench/" target="_blank" rel="noopener noreferrer">blog post</a>.</p>
+      results:
+        - model: OpenHands + Claude-3.7-Sonnet
+          org: All Hands
+          resolved: 18.00
+          date: "2025-05-28"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/oh_sonnet"
+
+        - model: SWE-agent + Claude-3.7-Sonnet
+          org: Princeton
+          resolved: 12.50
+          date: "2025-05-10"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/swea_sonnet"
+
+        - model: Aider + Claude-3.7-Sonnet
+          org: Aider
+          resolved: 3.00
+          date: "2025-05-28"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/PoC/aider_sonnet"
+
+    - display_name: Vulnerability Patching
+      info_sections:
+        - title: Vulnerability Patching Task
+          content: |
+            Vulnerability Patching evaluates the ability of LLM agents to generate patches that fix security vulnerabilities in real-world software projects.
+            <br><br>
+            Given a CVE description and the vulnerable code repository, LLM agents must:
+            <ul>
+              <li>Understand the root cause of the vulnerability</li>
+              <li>Locate the vulnerable code in the repository</li>
+              <li>Generate a correct patch that fixes the vulnerability without breaking functionality</li>
+            </ul>
+      results:
+        - model: AgenticRepair + GPT-5.2
+          org: University of Melbourne
+          resolved: 75.00
+          date: "2026-01-15"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/agenticrepair_gpt-5.2"
+
+        - model: AgenticRepair + GPT-5-mini
+          org: University of Melbourne
+          resolved: 50.00
+          date: "2026-01-15"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/agenticrepair_gpt-5-mini"
+
+        - model: OpenHands + Claude-3.7-Sonnet
+          org: All Hands
+          resolved: 34.00
+          date: "2025-05-28"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/oh_sonnet"
+
+        - model: SWE-agent + Claude-3.7-Sonnet
+          org: Princeton
+          resolved: 31.50
+          date: "2025-05-10"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/swea_sonnet"
+
+        - model: Aider + Claude-3.7-Sonnet
+          org: Aider
+          resolved: 23.50
+          date: "2025-05-28"
+          open_source: false
+          verified: true
+          logs_link: "https://github.com/SEC-bench/experiments/tree/main/evaluation/Patch/aider_sonnet"

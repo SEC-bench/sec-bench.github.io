@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Submit to SEC-bench{% endblock %}
+
+{% block content %}
+<div class="content-wrapper submit-page mode-panels">
+    <div class="mode-panel mode-panel-active" data-mode-panel="pro">
+        <header class="section-head">
+            <h1 class="section-title">Submit to SEC-bench Pro</h1>
+            <p class="section-note">Submission workflow for the SEC-bench Pro leaderboard.</p>
+        </header>
+
+        <section class="content-section">
+            <div class="leaderboard-shell submit-content">
+                <div class="submit-callout">
+                    <strong>Submission path is lightweight for now.</strong>
+                    Send us the checker summary, harness config, and artifact bundle for your <code>source_files</code> run.
+                </div>
+
+                <p>If you want your system added to the SEC-bench Pro leaderboard, please prepare the following:</p>
+
+                <ol>
+                    <li>Run the official SEC-bench Pro harness against the target project in <code>source_files</code> mode.</li>
+                    <li>Keep the exact harness config you used, including the model identifier, reasoning settings, and timeout.</li>
+                    <li>
+                        Share the following artifacts with the SEC-bench team:
+                        <ul>
+                            <li><code>summary.csv</code> or equivalent checker summary covering the evaluated target instances</li>
+                            <li><code>config.toml</code> for the exact run configuration</li>
+                            <li><code>logs/</code> or an artifact directory with reproducible run outputs</li>
+                            <li>Optional metadata such as project URL, organization icon, and whether the system is open-source</li>
+                        </ul>
+                    </li>
+                    <li>Open an issue or send the bundle to <a href="mailto:hwiwonl2@illinois.edu">hwiwonl2@illinois.edu</a> so the official score import can be verified and published.</li>
+                </ol>
+
+                <h3>Contact</h3>
+                <p>
+                    For questions about submissions, evaluation, or the benchmark itself, please contact us at
+                    <a href="mailto:hwiwonl2@illinois.edu">hwiwonl2@illinois.edu</a> or open an issue on GitHub.
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <div class="mode-panel" data-mode-panel="classic" hidden>
+        <header class="section-head">
+            <h1 class="section-title">Submit to SEC-bench</h1>
+            <p class="section-note">Guidelines for contributing your model's results to the original SEC-bench leaderboard.</p>
+        </header>
+
+        <section class="content-section">
+            <div class="leaderboard-shell submit-content">
+                <p>If you are interested in submitting your model to the SEC-bench leaderboard, please do the following:</p>
+
+                <ol>
+                    <li>Fork the <a href="https://github.com/SEC-bench/experiments" target="_blank" rel="noopener noreferrer">SEC-bench/experiments</a> repository.</li>
+                    <li>Clone the repository. Due to this repository's large diff history, consider using <code>git clone --depth 1</code> if cloning takes too long.</li>
+                    <li>Under the task that you evaluate on, such as <code>evaluation/Patch/</code>, create a new folder with the model name, such as <code>swea_o3-mini</code>.</li>
+                    <li>
+                        Within the folder, include the following files:
+                        <ul>
+                            <li><code>report.jsonl</code>: a report file that summarizes the evaluation results</li>
+                            <li>
+                                <code>metadata.yaml</code>: metadata for how the result is shown on the website, including:
+                                <ul>
+                                    <li><strong>name</strong>: the name of your leaderboard entry</li>
+                                    <li><strong>orgIcon</strong> (optional): URL or link to an icon representing your organization</li>
+                                    <li><strong>oss</strong>: <code>true</code> if your system is open-source</li>
+                                    <li><strong>site</strong>: URL or link to more information about your system</li>
+                                    <li><strong>verified</strong>: <code>false</code>; see results verification below</li>
+                                    <li><strong>date</strong>: date of submission</li>
+                                </ul>
+                            </li>
+                            <li><code>trajs/</code>: reasoning traces reflecting how your system solved the problems</li>
+                            <li><code>logs/</code>: SEC-bench evaluation artifact dump</li>
+                        </ul>
+                    </li>
+                    <li>Create a pull request to the <a href="https://github.com/SEC-bench/experiments" target="_blank" rel="noopener noreferrer">SEC-bench/experiments</a> repository with the new folder.</li>
+                </ol>
+
+                <h3>Results Verification</h3>
+                <p>
+                    Submissions marked with the <span class="badge badge-verified" title="Verified">Verified</span> badge have been verified by the SEC-bench team through artifact reproduction.
+                    We run your agent in our controlled environment to confirm the reported results.
+                </p>
+
+                <h3>Contact</h3>
+                <p>
+                    For questions about submissions, evaluation, or the benchmark itself, please contact us at
+                    <a href="mailto:hwiwonl2@illinois.edu">hwiwonl2@illinois.edu</a> or open an issue on GitHub.
+                </p>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

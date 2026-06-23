@@ -1,0 +1,35 @@
+citation_tabs:
+  - id: secbench-pro
+    label: SEC-bench Pro
+    heading: SEC-bench Pro
+    description: Cite this paper when referencing SEC-bench Pro results, datasets, tasks, or harnesses.
+    citations:
+      bibtex: |-
+        @article{lee2026sec,
+            author    = {Lee, Hwiwon and Liu, Jiawei and Kim, Dongjun and Zhang, Ziqi and Xia, Chunqiu Steven and Zhang, Lingming},
+            journal   = {arXiv preprint arXiv:2605.26548},
+            title     = {{SEC-bench Pro: Can Language Models Solve Long-Horizon Software Security Tasks?}},
+            year      = {2026}
+        }
+      apa: |-
+        Lee, H., Liu, J., Kim, D., Zhang, Z., Xia, C. S., & Zhang, L. (2026). SEC-bench Pro: Can Language Models Solve Long-Horizon Software Security Tasks? (Version 1). arXiv. https://doi.org/10.48550/ARXIV.2605.26548
+      mla: |-
+        Lee, Hwiwon, et al. “SEC-Bench Pro: Can Language Models Solve Long-Horizon Software Security Tasks?” Version 1, arXiv, 2026, https://doi.org/10.48550/ARXIV.2605.26548.
+
+  - id: secbench
+    label: SEC-bench
+    heading: SEC-bench [NeurIPS 2025]
+    description: Cite this paper when referencing the original SEC-bench benchmark family and legacy leaderboards.
+    citations:
+      bibtex: |-
+        @inproceedings{lee2025secbench,
+            author    = {Hwiwon Lee and Ziqi Zhang and Hanxiao Lu and Lingming Zhang},
+            booktitle = {The Thirty-ninth Annual Conference on Neural Information Processing Systems},
+            title     = {{SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks}},
+            url       = {https://openreview.net/forum?id=QQhQIqons0},
+            year      = {2025}
+        }
+      apa: |-
+        Lee, H., Zhang, Z., Lu, H., & Zhang, L. (2025). SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks. In The Thirty-ninth Annual Conference on Neural Information Processing Systems. https://openreview.net/forum?id=QQhQIqons0
+      mla: |-
+        Lee, Hwiwon, et al. "SEC-bench: Automated Benchmarking of LLM Agents on Real-World Software Security Tasks." The Thirty-ninth Annual Conference on Neural Information Processing Systems, 2025.

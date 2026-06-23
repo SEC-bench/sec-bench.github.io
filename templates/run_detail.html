@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% macro mode_value(headline, completed, suffix='') -%}
+data-headline="{{ headline }}{{ suffix }}" data-completed="{{ completed }}{{ suffix }}"
+{%- endmacro %}
+
+{% block content %}
+<div class="run-detail-page">
+    <section class="run-page-top">
+        <a class="run-back-link" href="/{{ target.name }}">Back to {{ target.display_name }}</a>
+    </section>
+
+    <header class="run-hero">
+        <div class="run-hero-main">
+            <img class="run-org-logo" src="{{ detail.org | org_logo }}" alt="{{ detail.org }}">
+            <div class="run-hero-copy">
+                <p class="section-no">{{ detail.target_display_name }} / run detail</p>
+                <h1 class="run-hero-title">{{ detail.agent }} · {{ detail.model }}</h1>
+                <p class="run-hero-meta">{{ detail.org }}{% if detail.effort %} · {{ detail.effort }}{% endif %}{% if result.rank %} · Rank #{{ result.rank }}{% endif %}</p>
+                <p class="run-hero-submeta">{{ detail.date }} · {{ detail.source_run }}</p>
+            </div>
+        </div>
+
+        <div class="score-mode-tabs run-score-tabs" aria-label="Score basis">
+            <button type="button" class="score-mode-tab active" data-run-score-mode="headline" aria-pressed="true">
+                <span>Headline</span>
+                <small>all instances</small>
+            </button>
+            <button type="button" class="score-mode-tab" data-run-score-mode="completed" aria-pressed="false">
+                <span>Completed</span>
+                <small>exclude timeout markers</small>
+            </button>
+        </div>
+
+        <section class="run-metrics" aria-label="Run summary">
+            <article class="run-metric">
+                <strong data-run-mode-value {{ mode_value(detail.summary.score_modes.headline.score, detail.summary.score_modes.completed.score, '%') }}>{{ detail.summary.score_modes.headline.score }}%</strong>
+                <span>Success</span>
+            </article>
+            <article class="run-metric">
+                <strong data-run-mode-value {{ mode_value(detail.summary.score_modes.headline.solved ~ ' / ' ~ detail.summary.score_modes.headline.total, detail.summary.score_modes.completed.solved ~ ' / ' ~ detail.summary.score_modes.completed.total) }}>{{ detail.summary.score_modes.headline.solved }} / {{ detail.summary.score_modes.headline.total }}</strong>
+                <span>Solved Instances</span>
+            </article>
+            <article class="run-metric">
+                <strong>{{ detail.summary.total_runtime_label or 'N/A' }}</strong>
+                <span>Total Runtime</span>
+            </article>
+            <article class="run-metric">
+                <strong>{{ detail.summary.total_tokens_label or 'N/A' }}</strong>
+                <span>Total Tokens</span>
+            </article>
+        </section>
+
+        <div class="run-secondary-stats" aria-label="Additional run summary">
+            <span><strong>{{ detail.summary.average_tool_calls | format_number }}</strong> Avg. tool calls</span>
+            <span><strong>{{ detail.summary.average_tokens_label or 'N/A' }}</strong> Avg. tokens</span>
+            <span><strong>{{ detail.summary.average_runtime_label or 'N/A' }}</strong> Avg. runtime</span>
+        </div>
+    </header>
+
+    <section class="run-detail-section">
+        <div class="run-section-header">
+            <div>
+                <h2>Per-Instance Results</h2>
+                <p>Timeout uses the per-instance marker under the trajectory artifact. Completed-only scoring excludes rows with that marker.</p>
+            </div>
+            <div class="instance-filter-tabs" aria-label="Instance filter">
+                <button type="button" class="filter-btn active" data-instance-filter="all">All</button>
+                <button type="button" class="filter-btn" data-instance-filter="completed">Completed</button>
+                <button type="button" class="filter-btn" data-instance-filter="timedout">Timed out</button>
+                <button type="button" class="filter-btn" data-instance-filter="solved">Solved</button>
+            </div>
+        </div>
+
+        <div class="table-container run-table-container">
+            <table class="run-results-table" id="run-results-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Instance</th>
+                        {% if detail.target == 'v8' %}
+                        <th>Bounty</th>
+                        {% endif %}
+                        <th>Result</th>
+                        <th>Error Type</th>
+                        <th>Bug Type</th>
+                        <th>PoCs</th>
+                        <th>Runtime</th>
+                        <th>Tokens</th>
+                        <th>Tools</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for instance in detail.instances %}
+                    {% set result_label = instance | result_label %}
+                    {% set result_class = instance | result_class %}
+                    {% set token_pair = instance | token_pair %}
+                    <tr class="run-instance-row {% if instance.success %}instance-row-solved{% endif %}"
+                        data-completed="{{ 'true' if instance.completed else 'false' }}"
+                        data-timedout="{{ 'true' if instance.timed_out else 'false' }}"
+                        data-solved="{{ 'true' if instance.success else 'false' }}">
+                        <td class="run-index">{{ loop.index }}</td>
+                        <td class="instance-cell">
+                            {% if detail.target == 'v8' %}
+                            <a href="https://issues.chromium.org/issues/{{ instance.id }}" target="_blank" rel="noopener noreferrer">{{ instance.id }}</a>
+                            {% elif detail.target == 'firefox' %}
+                            <a href="https://bugzilla.mozilla.org/show_bug.cgi?id={{ instance.id }}" target="_blank" rel="noopener noreferrer">{{ instance.id }}</a>
+                            {% elif detail.target == 'linux' %}
+                            <a href="https://nvd.nist.gov/vuln/detail/{{ instance.id }}" target="_blank" rel="noopener noreferrer">{{ instance.id }}</a>
+                            {% else %}
+                            <span>{{ instance.id }}</span>
+                            {% endif %}
+                        </td>
+                        {% if detail.target == 'v8' %}
+                        <td class="run-num-cell run-bounty-cell">
+                            {% if instance.bounty is defined and instance.bounty is not none %}
+                            {{ instance.bounty | format_currency }}
+                            {% else %}
+                            <span class="table-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        <td class="run-result-cell">
+                            <span class="result-pill result-pill-{{ result_class }}"
+                                  {% if instance.result_description %}title="{{ instance.result_description }}" aria-label="{{ result_label }}: {{ instance.result_description }}"{% endif %}>{{ result_label }}</span>
+                        </td>
+                        <td class="run-type-cell run-error-cell">
+                            {% if instance.expected_type %}
+                            <code>{{ instance.expected_type }}</code>
+                            {% else %}
+                            <span class="table-muted">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td class="run-type-cell run-bug-cell">
+                            {% if instance.vulnerability_type %}
+                            <span>{{ instance.vulnerability_type }}</span>
+                            {% else %}
+                            <span class="table-muted">Unknown</span>
+                            {% endif %}
+                        </td>
+                        <td class="run-num-cell run-poc-cell"><strong>{{ instance.verified_pocs | format_number }}</strong><span>/ {{ instance.poc_total | format_number }}</span></td>
+                        <td class="run-num-cell">{% if instance.runtime_label %}{{ instance.runtime_label }}{% else %}<span class="table-muted">N/A</span>{% endif %}</td>
+                        <td class="run-num-cell run-token-cell">
+                            {% if token_pair %}
+                            <span title="Total: {{ instance.tokens_total | format_token_label }}">{{ token_pair }}</span>
+                            {% else %}
+                            <span class="table-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="run-num-cell">{% if instance.tool_calls %}{{ instance.tool_calls | format_number }}{% else %}<span class="table-muted">N/A</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+(function () {
+    function setMode(mode) {
+        document.querySelectorAll('[data-run-score-mode]').forEach((button) => {
+            const active = button.dataset.runScoreMode === mode;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', String(active));
+        });
+        document.querySelectorAll('[data-run-mode-value]').forEach((node) => {
+            node.textContent = node.dataset[mode] || '';
+        });
+    }
+
+    function applyInstanceFilter(filter) {
+        document.querySelectorAll('[data-instance-filter]').forEach((button) => {
+            button.classList.toggle('active', button.dataset.instanceFilter === filter);
+        });
+        document.querySelectorAll('.run-instance-row').forEach((row) => {
+            const show =
+                filter === 'all' ||
+                (filter === 'completed' && row.dataset.completed === 'true') ||
+                (filter === 'timedout' && row.dataset.timedout === 'true') ||
+                (filter === 'solved' && row.dataset.solved === 'true');
+            row.classList.toggle('hidden', !show);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('[data-run-score-mode]').forEach((button) => {
+            button.addEventListener('click', () => setMode(button.dataset.runScoreMode));
+        });
+        document.querySelectorAll('[data-instance-filter]').forEach((button) => {
+            button.addEventListener('click', () => applyInstanceFilter(button.dataset.instanceFilter));
+        });
+    });
+})();
+</script>
+{% endblock %}

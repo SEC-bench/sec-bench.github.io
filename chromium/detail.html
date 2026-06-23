@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Detail - Chromium Security Reports - SEC-bench</title>
+    <link rel="icon" type="image/png" href="../img/secbench.png">
+    <link rel="stylesheet" href="css/detail.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-nav">
+                <a href="index.html" class="back-btn">← Back to List</a>
+                <button id="logoutBtn" class="logout-btn">🔒 Logout</button>
+            </div>
+            <div class="report-header">
+                <h1 id="reportTitle">Loading...</h1>
+                <div class="report-meta">
+                    <span class="meta-item" id="reportDate"></span>
+                    <span class="meta-item" id="reportCategory"></span>
+                    <span class="meta-item" id="reportReward"></span>
+                    <a href="#" id="reportLink" target="_blank" class="meta-link">View Original →</a>
+                </div>
+            </div>
+        </header>
+        
+        <div class="content">
+            <div class="markdown-viewer" id="markdownContent">
+                <div class="loading">Loading report...</div>
+            </div>
+            
+            <div class="attachments-section" id="attachmentsSection" style="display: none;">
+                <h2>📎 Attachments</h2>
+                <div class="attachments-list" id="attachmentsList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="attachmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Attachment Viewer</h3>
+                <button class="modal-close" id="modalClose">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+    
+    <script type="module" src="js/detail.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chromium Security Bug Reports - SEC-bench</title>
+    <link rel="icon" type="image/png" href="../img/secbench.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container" style="display: none;">
+        <header>
+            <div class="header-nav" style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <a href="../" class="back-btn" style="padding: 8px 16px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; text-decoration: none; color: #667eea; font-weight: 600;">← Back to SEC-bench</a>
+                <button id="logoutBtn" class="logout-btn" style="padding: 8px 16px; background: #dc3545; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">🔒 Logout</button>
+            </div>
+            <div class="header-title">
+                <img src="img/chromium.svg" alt="Chromium" class="chromium-logo" onerror="this.style.display='none'" />
+                <h1>Chromium Security Bug Reports</h1>
+            </div>
+            <p>Collection of disclosed security vulnerabilities</p>
+            <p class="total-count" id="totalCount">Total: 0 reports</p>
+        </header>
+        
+        <div class="year-nav" id="yearNav">
+            <span>Years:</span>
+            <button class="year-badge active" data-year="all">All</button>
+        </div>
+        
+        <div class="filters">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search by title, ID, or category..." />
+            </div>
+        </div>
+        
+        <div class="content" id="content"></div>
+        
+        <footer>
+            <p>This page displays collected Chromium security bug reports.</p>            
+        </footer>
+    </div>
+    
+    <div id="notification" class="notification hidden"></div>
+    
+    <script type="module" src="js/main.js"></script>
+    <script>
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>
+

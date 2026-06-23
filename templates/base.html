@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121312">
+    <title>{% block title %}{{ website_title }}{% endblock %}</title>
+    <meta name="description" content="{{ website_subtitle or website_title }}">
+
+    <link rel="icon" type="image/png" href="{{ asset_prefix }}img/secbench.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ asset_prefix }}css/core.css?v=6">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/layout.css?v=15">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/components.css?v=17">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/filters.css?v=3">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/sidebar.css?v=5">
+
+    {% block head_extra %}{% endblock %}
+</head>
+{% macro nav_resource_link(url, label) -%}
+    {% if url %}
+    <a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ label }}</a>
+    {% else %}
+    <span class="nav-pending" title="Coming soon">{{ label }}</span>
+    {% endif %}
+{%- endmacro %}
+{% macro nav_mode_link(pro_url, classic_url, label) -%}
+    {% set href = pro_url or classic_url %}
+    {% if href %}
+    <a href="{{ href }}"
+       data-mode-nav-link
+       data-pro-href="{{ pro_url or '' }}"
+       data-classic-href="{{ classic_url or '' }}"
+       {% if href.startswith('http://') or href.startswith('https://') %}target="_blank" rel="noopener noreferrer"{% endif %}>{{ label }}</a>
+    {% else %}
+    <span class="nav-pending" title="Coming soon">{{ label }}</span>
+    {% endif %}
+{%- endmacro %}
+<body data-leaderboard-mode="pro">
+    <header class="topnav">
+        <div class="topnav-inner">
+            <a class="brand" href="{{ site_root }}" aria-label="{{ website_title }}">
+                <span>SEC-bench</span>
+            </a>
+            <button type="button" class="pro-mode-toggle active" id="pro-toggle" aria-label="SEC-bench Pro mode" aria-pressed="true" data-state="on" title="PRO mode on">PRO</button>
+            <nav class="nav-links" aria-label="Primary navigation">
+                {{ nav_mode_link(content.resource_links.pro.paper_url, content.resource_links.classic.paper_url, 'Paper') }}
+                {{ nav_mode_link(content.resource_links.pro.code_url, content.resource_links.classic.code_url, 'Code') }}
+                {{ nav_mode_link(content.resource_links.pro.data_url, content.resource_links.classic.data_url, 'Data') }}
+                <a href="{{ site_root }}citations.html">Cite</a>
+                {{ nav_mode_link(site_root ~ 'submit.html', site_root ~ 'submit.html?mode=classic', 'Submit') }}
+            </nav>
+            <button type="button" class="theme-toggle" id="dark-mode-toggle" data-theme-toggle data-theme-state="dark" aria-label="Switch to light mode" aria-pressed="true" title="Switch to light mode">
+                <svg class="theme-icon theme-icon-moon" viewBox="0 0 384 512" aria-hidden="true" focusable="false">
+                    <path d="M223.5 32C100 32 0 132.3 0 256s100.3 224 224 224c62.7 0 119.3-25.8 160-67.3 5-5.1 6.3-12.8 3.1-19.2s-10.5-9.7-17.8-8.5c-8.2 1.4-16.5 2.1-25 2.1-82.8 0-150-67.2-150-150 0-69.4 47.1-127.8 111.1-145 7.4-2 12.9-8.2 13.6-15.8s-3.7-14.8-10.5-18.4C284.9 43.6 255.5 32 223.5 32z"></path>
+                </svg>
+                <svg class="theme-icon theme-icon-sun" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+                    <path d="M256 118a138 138 0 1 0 0 276 138 138 0 1 0 0-276zM256 0c-13.3 0-24 10.7-24 24v48c0 13.3 10.7 24 24 24s24-10.7 24-24V24c0-13.3-10.7-24-24-24zm0 416c-13.3 0-24 10.7-24 24v48c0 13.3 10.7 24 24 24s24-10.7 24-24v-48c0-13.3-10.7-24-24-24zM488 232h-48c-13.3 0-24 10.7-24 24s10.7 24 24 24h48c13.3 0 24-10.7 24-24s-10.7-24-24-24zM96 256c0-13.3-10.7-24-24-24H24c-13.3 0-24 10.7-24 24s10.7 24 24 24h48c13.3 0 24-10.7 24-24zM411.7 100.3c-9.4-9.4-24.6-9.4-33.9 0l-33.9 33.9c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l33.9-33.9c9.4-9.4 9.4-24.6 0-33.9zM168.1 343.9c-9.4-9.4-24.6-9.4-33.9 0l-33.9 33.9c-9.4 9.4-9.4 24.6 0 33.9s24.6 9.4 33.9 0l33.9-33.9c9.4-9.4 9.4-24.6 0-33.9zM411.7 411.7c9.4-9.4 9.4-24.6 0-33.9l-33.9-33.9c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l33.9 33.9c9.4 9.4 24.6 9.4 33.9 0zM168.1 168.1c9.4-9.4 9.4-24.6 0-33.9l-33.9-33.9c-9.4-9.4-24.6-9.4-33.9 0s-9.4 24.6 0 33.9l33.9 33.9c9.4 9.4 24.6 9.4 33.9 0z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; {{ current_year }} {{ website_title }}</p>
+            {% if footer_links %}
+            <div class="footer-links">
+                {% for link in footer_links %}
+                <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.name }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </footer>
+
+    <script src="{{ asset_prefix }}js/dark-mode.js?v=4"></script>
+    <script src="{{ asset_prefix }}js/multiselect-dropdown.js?v=2"></script>
+    <script src="{{ asset_prefix }}js/leaderboard.js?v=4"></script>
+    <script src="{{ asset_prefix }}js/filters.js?v=3"></script>
+    <script src="{{ asset_prefix }}js/footnotes.js?v=2"></script>
+    <script src="{{ asset_prefix }}js/sidebar.js?v=5"></script>
+    {% block scripts_extra %}{% endblock %}
+</body>
+</html>

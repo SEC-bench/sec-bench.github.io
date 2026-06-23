@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}SEC-bench Citations{% endblock %}
+
+{% block content %}
+<div class="content-wrapper citations-page">
+    <header class="section-head citation-page-head">
+        <h1 class="section-title">Citations</h1>
+        <p class="section-note">Use the SEC-bench Pro citation for Pro results and the SEC-bench citation for legacy benchmark-family results.</p>
+    </header>
+
+    {% if citations %}
+    <div class="citation-tabs" role="tablist" aria-label="Citation targets">
+        {% for citation in citations %}
+        <button class="citation-tab-btn {% if loop.first %}active{% endif %}"
+                id="{{ citation.id }}-tab"
+                data-citation-tab="{{ citation.id }}"
+                type="button"
+                role="tab"
+                aria-selected="{% if loop.first %}true{% else %}false{% endif %}"
+                aria-controls="{{ citation.id }}-panel">
+            {{ citation.label }}
+        </button>
+        {% endfor %}
+    </div>
+
+    {% for citation in citations %}
+    <section class="citation-section citation-tab-panel {% if not loop.first %}display-none{% endif %}"
+             id="{{ citation.id }}-panel"
+             data-citation-panel="{{ citation.id }}"
+             role="tabpanel"
+             aria-labelledby="{{ citation.id }}-tab">
+        <div class="citation-section-head">
+            <div>
+                <h2>{{ citation.heading }}</h2>
+                {% if citation.description %}
+                <p class="citation-section-description">{{ citation.description }}</p>
+                {% endif %}
+            </div>
+
+            <div class="citation-type" data-citation-format-group="{{ citation.id }}">
+                {% for format in citation.formats %}
+                <button class="citation-format-btn {% if loop.first %}active{% endif %}"
+                        data-format="{{ format.id }}"
+                        data-target="{{ citation.id }}-citation"
+                        type="button">
+                    {{ format.label }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% for format in citation.formats %}
+        <div class="citation-container citation-block {% if not loop.first %}display-none{% endif %}"
+             id="{{ citation.id }}-citation-{{ format.id }}"
+             data-citation-target="{{ citation.id }}-citation"
+             data-format="{{ format.id }}">
+            <button class="copy-btn" type="button" aria-label="Copy citation" title="Copy citation">
+                <svg class="copy-icon copy-icon-copy" aria-hidden="true" viewBox="0 0 24 24">
+                    <rect x="9" y="9" width="10" height="10" rx="1.5"></rect>
+                    <path d="M5 15V6.5A1.5 1.5 0 0 1 6.5 5H15"></path>
+                </svg>
+                <svg class="copy-icon copy-icon-check" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M5 12.5 10 17l9-10"></path>
+                </svg>
+                <span class="sr-only copy-status" aria-live="polite">Copy citation</span>
+            </button>
+            <div class="citation-scroll">
+                <pre><code class="language-{{ format.id }}">{{ format.text|highlight_citation(format.id)|safe }}</code></pre>
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+    {% endfor %}
+    {% else %}
+    <section class="citation-section">
+        <div class="citation-section-head">
+            <div>
+                <h2>Citations unavailable</h2>
+                <p class="citation-section-description">No citation data is configured for this site build.</p>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="js/citation.js?v=2"></script>
+{% endblock %}
