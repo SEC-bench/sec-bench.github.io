@@ -30,14 +30,11 @@ target_tabs:
     status: available
     description: "<strong>Linux</strong> evaluates kernel vulnerability discovery and PoC generation. The benchmark currently includes <strong>137</strong> instances."
 
-section_title: SEC-bench Pro
+section_title: ""
 section_description: >
-  SEC-bench Pro reports <code>source-files</code> leaderboards by target. The
-  bar shows the <strong>success</strong> rate: the share of instances that
-  satisfy <strong>two</strong> criteria: the PoC matches the expected crash
-  class in the vulnerable image, and the same PoC is blocked on that instance's
-  fixed build (differential PASS/FAIL). Use <strong>Version</strong> to switch
-  between public benchmark snapshots.
+  SEC-bench Pro is a self-evolving security benchmark that measures agents' ability to hunt security bugs in critical software systems.
+  More projects and security tasks will be added over time.
+  Use <strong>Version</strong> to switch between benchmark snapshots.
 
 footer_links: []
 
@@ -65,7 +62,7 @@ pro_common_info_sections: &pro_common_info_sections
         <li><span style="font-weight: bold;">[May 1, 2026]:</span> SEC-bench Pro launches with the V8 leaderboard.</li>
       </ul>
 
-  - title: SEC-bench Pro Overview
+  - title: Overview
     content: |
       SEC-bench Pro evaluates agents on vulnerability discovery and PoC generation tasks on challenging targets. Each target instance ships with a Docker image, metadata, a rendered prompt, and a harness. The harness renders the prompt from <code>meta.json</code>, starts the instance container, runs the configured agent with a timeout, and collects the generated files and run artifacts for checker evaluation.
 

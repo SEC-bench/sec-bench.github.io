@@ -250,6 +250,10 @@
     max-width: 760px;
 }
 
+.leaderboard-section-note {
+    max-width: none;
+}
+
 .leaderboard-shell {
     background: var(--bg);
     border: 1px solid var(--rule);

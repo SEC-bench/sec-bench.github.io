@@ -104,10 +104,14 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
 
 <section class="leaderboard-section">
     <div class="container wide">
+        {% if panel_section_title | trim %}
         <div class="section-head">
             <h2 class="section-title">{{ panel_section_title }}</h2>
         </div>
-        <p class="section-note">{{ panel_section_description | safe }}</p>
+        {% endif %}
+        {% if panel_section_description | trim %}
+        <p class="section-note leaderboard-section-note">{{ panel_section_description | safe }}</p>
+        {% endif %}
 
         <div class="leaderboard-shell">
             <div class="leaderboard-toolbar">

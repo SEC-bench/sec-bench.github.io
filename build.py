@@ -1066,7 +1066,7 @@ def render_base_html_stdlib(
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{asset_prefix}css/core.css?v=6">
-    <link rel="stylesheet" href="{asset_prefix}css/layout.css?v=15">
+    <link rel="stylesheet" href="{asset_prefix}css/layout.css?v=16">
     <link rel="stylesheet" href="{asset_prefix}css/components.css?v=18">
     <link rel="stylesheet" href="{asset_prefix}css/filters.css?v=6">
     <link rel="stylesheet" href="{asset_prefix}css/sidebar.css?v=5">
@@ -1401,6 +1401,19 @@ def render_leaderboard_panel_stdlib(
             f'<div class="leaderboard-content" id="{esc(lb_name)}-content" data-leaderboard-panel="{esc(lb_name)}"{style}>{table}</div>'
         )
 
+    section_title = str(panel_section_title or "").strip()
+    section_description = str(panel_section_description or "").strip()
+    section_heading = (
+        f'<div class="section-head"><h2 class="section-title">{esc(section_title)}</h2></div>'
+        if section_title
+        else ""
+    )
+    section_note = (
+        f'<p class="section-note leaderboard-section-note">{section_description}</p>'
+        if section_description
+        else ""
+    )
+
     return f"""
 <section class="hero">
     <div class="container wide">
@@ -1410,10 +1423,8 @@ def render_leaderboard_panel_stdlib(
 </section>
 <section class="leaderboard-section">
     <div class="container wide">
-        <div class="section-head">
-            <h2 class="section-title">{esc(panel_section_title)}</h2>
-        </div>
-        <p class="section-note">{panel_section_description}</p>
+        {section_heading}
+        {section_note}
         <div class="leaderboard-shell">
             <div class="leaderboard-toolbar">
                 <div class="target-tabs" role="tablist" aria-label="{esc(panel_title)} leaderboards">{''.join(tab_buttons)}</div>
