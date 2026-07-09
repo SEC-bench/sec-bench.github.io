@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}SEC-bench Research{% endblock %}
+
+{% block content %}
+<div class="blog-page">
+    <header class="blog-page-head">
+        <h1 class="blog-page-title">Research</h1>
+    </header>
+
+    {% if blog_posts %}
+    <section class="blog-list" aria-label="Research posts">
+        {% for post in blog_posts %}
+        <article class="blog-list-item">
+            <time class="blog-list-date" datetime="{{ post.date }}">{{ post.date_label }}</time>
+            <div class="blog-list-main">
+                <h3><a href="{{ post.url }}">{{ post.title }}</a></h3>
+                <p class="blog-byline">
+                    {% if post.author %}<span>{{ post.author }}</span><span aria-hidden="true"> · </span>{% endif %}
+                    <span>{{ post.read_minutes }} min read</span>
+                </p>
+            </div>
+        </article>
+        {% endfor %}
+    </section>
+    {% else %}
+    <section class="blog-empty">
+        <p>No blog posts are published yet.</p>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

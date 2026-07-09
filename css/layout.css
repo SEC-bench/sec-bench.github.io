@@ -30,9 +30,9 @@
     align-items: center;
     color: var(--ink);
     display: flex;
-    font-family: var(--mono);
+    font-family: var(--brand);
     font-size: 18px;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1.2;
     text-decoration: none;
     white-space: nowrap;
@@ -41,7 +41,7 @@
 .nav-links {
     align-items: center;
     display: flex;
-    font-family: var(--mono);
+    font-family: var(--sans);
     font-size: 13px;
     font-weight: 700;
     gap: 3px;
@@ -101,9 +101,9 @@
     color: var(--ink-3);
     cursor: pointer;
     display: inline-grid;
-    font-family: var(--mono);
+    font-family: var(--brand);
     font-size: 16px;
-    font-weight: 800;
+    font-weight: 700;
     height: 28px;
     justify-content: center;
     letter-spacing: 0;
@@ -150,8 +150,9 @@
 }
 
 .title {
+    font-family: var(--brand);
     font-size: clamp(2.4rem, 8vw, 3.45rem);
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1.08;
     margin: 0 0 12px;
     text-align: center;

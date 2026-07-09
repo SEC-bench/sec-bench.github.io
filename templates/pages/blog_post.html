@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ post.title }} | SEC-bench Blog{% endblock %}
+
+{% macro render_toc_items(items) -%}
+{% for item in items %}
+<li class="blog-toc-item blog-toc-level-{{ item.level }}">
+    <a href="#{{ item.id }}">{{ item.title }}</a>
+    {% if item.children %}
+    <ol>
+        {{ render_toc_items(item.children) }}
+    </ol>
+    {% endif %}
+</li>
+{% endfor %}
+{%- endmacro %}
+
+{% block content %}
+<article class="blog-post-page">
+    <div class="blog-post-layout {% if not post.toc %}blog-post-layout-single{% endif %}">
+        {% if post.toc %}
+        <aside class="blog-toc" data-blog-toc aria-label="Table of contents">
+            <div class="blog-toc-inner">
+                <p class="blog-toc-title">Contents</p>
+                <nav>
+                    <ol>
+                        {{ render_toc_items(post.toc) }}
+                    </ol>
+                </nav>
+            </div>
+        </aside>
+        {% endif %}
+
+        <div class="blog-post-wrap">
+            <a class="blog-back-link" href="{{ site_root }}blog/">Back to Blog</a>
+
+            <header class="blog-post-head">
+                <p class="blog-post-meta">
+                    <time datetime="{{ post.date }}">{{ post.date_label }}</time>
+                    {% if post.author %}<span aria-hidden="true"> · </span>{{ post.author }}{% endif %}
+                    <span aria-hidden="true"> · </span>{{ post.read_minutes }} min read
+                </p>
+                <h1 class="blog-post-title">{{ post.title }}</h1>
+                {% if post.summary %}
+                <p class="blog-post-summary">{{ post.summary }}</p>
+                {% endif %}
+            </header>
+
+            <div class="blog-post-content">
+                {{ post.html | safe }}
+            </div>
+        </div>
+    </div>
+</article>
+{% endblock %}
+
+{% block scripts_extra %}
+<script src="{{ asset_prefix }}js/blog.js?v=3"></script>
+{% endblock %}

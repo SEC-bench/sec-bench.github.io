@@ -9,8 +9,9 @@ import html
 import copy
 import re
 import shutil
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
+from urllib.parse import quote, unquote
 
 try:
     from jinja2 import Environment, FileSystemLoader
@@ -27,6 +28,18 @@ try:
     import markdown
 except ModuleNotFoundError:
     markdown = None
+
+try:
+    from pygments import highlight as pygments_highlight
+    from pygments.formatters import HtmlFormatter
+    from pygments.lexers import TextLexer, get_lexer_by_name
+    from pygments.util import ClassNotFound
+except ModuleNotFoundError:
+    pygments_highlight = None
+    HtmlFormatter = None
+    TextLexer = None
+    get_lexer_by_name = None
+    ClassNotFound = Exception
 
 # ==============================================================================
 # Citation Formats
@@ -155,6 +168,8 @@ DEFAULT_ORG_LOGO = "https://avatars.githubusercontent.com/u/0?s=200&v=4"
 
 
 RESULTS_DATA_FILE = "results.json"
+BLOG_DEFAULT_METADATA = {}
+BLOG_MARKDOWN_EXTENSIONS = ["fenced_code", "tables", "toc"]
 
 
 def org_logo_filter(org_name: str) -> str:
@@ -849,6 +864,479 @@ def attach_run_detail_urls(site_config: dict, run_details: dict, url_prefix: str
             result["details_summary"] = detail.get("summary", {})
 
 
+def slugify(value: str, fallback: str = "post") -> str:
+    """Convert a title into a stable URL slug."""
+    slug = re.sub(r"[^a-z0-9]+", "-", str(value or "").lower()).strip("-")
+    return slug or fallback
+
+
+def parse_front_matter(md_text: str) -> tuple[dict, str]:
+    """Return optional YAML front matter and the Markdown body."""
+    if not md_text.startswith("---\n"):
+        return {}, md_text
+
+    parts = md_text.split("\n---\n", 1)
+    if len(parts) != 2:
+        return {}, md_text
+
+    raw_meta = parts[0][4:]
+    if yaml is None:
+        return {}, parts[1]
+
+    try:
+        metadata = yaml.safe_load(raw_meta) or {}
+    except yaml.YAMLError as exc:
+        print(f"⚠ Warning: Could not parse blog front matter: {exc}")
+        metadata = {}
+
+    return metadata if isinstance(metadata, dict) else {}, parts[1]
+
+
+def plain_text_from_markdown(md_text: str) -> str:
+    """Best-effort plain text extraction for titles and summaries."""
+    text = re.sub(r"```.*?```", " ", str(md_text or ""), flags=re.DOTALL)
+    text = re.sub(r"`([^`]*)`", r"\1", text)
+    text = re.sub(r"!\[[^\]]*\]\([^)]+\)", " ", text)
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"[*_~>#|`]", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def extract_blog_title(md_text: str, metadata: dict, fallback: str) -> tuple[str, str]:
+    """Extract the H1 title and remove it from the post body."""
+    if metadata.get("title"):
+        return str(metadata["title"]).strip(), md_text
+
+    lines = md_text.splitlines()
+    for index, line in enumerate(lines):
+        match = re.match(r"^#\s+(.+?)\s*$", line)
+        if not match:
+            continue
+        title = plain_text_from_markdown(match.group(1)) or fallback
+        del lines[index]
+        return title, "\n".join(lines).lstrip()
+
+    return fallback, md_text
+
+
+def extract_blog_summary(md_text: str, metadata: dict) -> tuple[str, str]:
+    """Extract a summary and remove deck text from the rendered body."""
+    explicit = metadata.get("summary") or metadata.get("description") or metadata.get("subtitle")
+    if explicit:
+        return plain_text_from_markdown(str(explicit)), md_text
+
+    lines = md_text.splitlines()
+    start = next((index for index, line in enumerate(lines) if line.strip()), None)
+    if start is None:
+        return "", md_text
+
+    end = start
+    while end < len(lines) and lines[end].strip():
+        end += 1
+
+    leading_block = "\n".join(lines[start:end]).strip()
+    if leading_block.startswith(">"):
+        summary = plain_text_from_markdown(
+            "\n".join(re.sub(r"^>\s?", "", line) for line in lines[start:end])
+        )
+        del lines[start:end]
+        return summary, "\n".join(lines).lstrip()
+
+    if (
+        len(leading_block) >= 2
+        and leading_block.startswith(("*", "_"))
+        and leading_block.endswith(("*", "_"))
+    ):
+        summary = plain_text_from_markdown(leading_block)
+        del lines[start:end]
+        return summary, "\n".join(lines).lstrip()
+
+    for block in re.split(r"\n\s*\n", md_text):
+        candidate = block.strip()
+        if not candidate or candidate.startswith(("#", "|", "```", "---")):
+            continue
+        summary = plain_text_from_markdown(candidate)
+        if summary:
+            lines = md_text.splitlines()
+            block_start = next(
+                (
+                    index
+                    for index, line in enumerate(lines)
+                    if line.strip() == candidate.splitlines()[0].strip()
+                ),
+                None,
+            )
+            if block_start is None:
+                return summary, md_text
+
+            block_end = block_start
+            while block_end < len(lines) and lines[block_end].strip():
+                block_end += 1
+            del lines[block_start:block_end]
+            return summary, "\n".join(lines).lstrip()
+
+    return "", md_text
+
+
+def parse_blog_date(value, source_path: Path) -> datetime:
+    """Parse a post date, falling back to the source mtime."""
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, date):
+        return datetime.combine(value, datetime.min.time())
+
+    if value:
+        text = str(value).strip()
+        for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%B %d, %Y", "%b %d, %Y"):
+            try:
+                return datetime.strptime(text, fmt)
+            except ValueError:
+                continue
+        try:
+            return datetime.fromisoformat(text)
+        except ValueError:
+            print(f"⚠ Warning: Could not parse blog date {text!r} in {source_path}")
+
+    return datetime.fromtimestamp(source_path.stat().st_mtime)
+
+
+def format_blog_date(value: datetime) -> str:
+    return f"{value.strftime('%B')} {value.day}, {value.year}"
+
+
+def infer_blog_category(title: str, metadata: dict) -> str:
+    if metadata.get("category"):
+        return str(metadata["category"]).strip()
+
+    title_lower = title.lower()
+    for category in ("linux", "v8", "firefox", "chromium"):
+        if category in title_lower:
+            return category
+    return "benchmark"
+
+
+def normalize_blog_author(value) -> str:
+    if isinstance(value, (list, tuple)):
+        return ", ".join(str(item).strip() for item in value if str(item).strip())
+    if isinstance(value, dict):
+        return str(value.get("name") or "").strip()
+    return str(value or "").strip()
+
+
+def normalize_blog_keywords(value) -> list[str]:
+    if isinstance(value, str):
+        items = [item.strip() for item in value.split(",")]
+    elif isinstance(value, (list, tuple)):
+        items = [str(item).strip() for item in value]
+    else:
+        items = []
+    return [item for item in items if item]
+
+
+def estimate_read_minutes(md_text: str) -> int:
+    words = re.findall(r"[A-Za-z0-9_]+(?:[-'][A-Za-z0-9_]+)?", md_text)
+    return max(1, (len(words) + 219) // 220)
+
+
+def normalize_toc_tokens(tokens: list[dict], max_level: int = 3) -> list[dict]:
+    """Normalize Python-Markdown TOC tokens for template rendering."""
+    normalized = []
+    for token in tokens or []:
+        level = int(token.get("level") or 0)
+        children = normalize_toc_tokens(token.get("children", []), max_level)
+        if level <= max_level:
+            name = html.unescape(re.sub(r"<[^>]+>", "", str(token.get("name", ""))))
+            item = {
+                "id": token.get("id", ""),
+                "title": name.strip(),
+                "level": level,
+                "children": children,
+            }
+            if item["id"] and item["title"]:
+                normalized.append(item)
+        else:
+            normalized.extend(children)
+    return normalized
+
+
+def render_blog_markdown(md_text: str) -> tuple[str, list[dict]]:
+    if markdown is None:
+        return f"<pre>{html.escape(md_text)}</pre>", []
+
+    md = markdown.Markdown(extensions=BLOG_MARKDOWN_EXTENSIONS)
+    html_text = md.convert(md_text)
+    return html_text, normalize_toc_tokens(getattr(md, "toc_tokens", []))
+
+
+def is_relative_blog_asset(url: str) -> bool:
+    return not re.match(r"^(?:[a-z][a-z0-9+.-]*:|/|#)", str(url or ""), re.I)
+
+
+def blog_asset_url(src: str) -> str:
+    rel_path = str(src).lstrip("/")
+    if rel_path == "assets" or rel_path.startswith("assets/"):
+        rel_path = rel_path[len("assets/") :]
+    return "/blog/assets/" + quote(rel_path)
+
+
+def blog_asset_file_for_url(blog_dir: Path | None, url: str) -> Path | None:
+    if blog_dir is None or not str(url or "").startswith("/blog/assets/"):
+        return None
+
+    rel_path = unquote(str(url)[len("/blog/assets/") :])
+    parts = Path(rel_path).parts
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        return None
+    assets_path = blog_dir / "assets" / Path(*parts)
+    if assets_path.exists():
+        return assets_path
+    return blog_dir.joinpath(*parts)
+
+
+def rewrite_blog_asset_paths(html_text: str) -> str:
+    """Point relative Markdown image sources at copied blog assets."""
+    def replace_src(match):
+        prefix, src, suffix = match.groups()
+        if not is_relative_blog_asset(src):
+            return match.group(0)
+        return f'{prefix}{blog_asset_url(src)}{suffix}'
+
+    return re.sub(r'(<(?:img|iframe)\b[^>]*\bsrc=")([^"]+)("[^>]*>)', replace_src, html_text)
+
+
+def wrap_blog_tables(html_text: str) -> str:
+    """Give Markdown tables a scroll container on narrow screens."""
+    return re.sub(
+        r"(<table>.*?</table>)",
+        r'<div class="blog-table-wrap">\1</div>',
+        html_text,
+        flags=re.DOTALL,
+    )
+
+
+def blog_image_aspect_ratio(asset_file: Path) -> str | None:
+    if asset_file.suffix.lower() != ".png":
+        return None
+
+    try:
+        header = asset_file.read_bytes()[:24]
+    except OSError:
+        return None
+
+    if len(header) < 24 or not header.startswith(b"\x89PNG\r\n\x1a\n"):
+        return None
+
+    width = int.from_bytes(header[16:20], "big")
+    height = int.from_bytes(header[20:24], "big")
+    if width <= 0 or height <= 0:
+        return None
+    return f"{width} / {height}"
+
+
+def blog_html_aspect_ratio(asset_file: Path) -> str | None:
+    try:
+        html_text = asset_file.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+
+    explicit = re.search(
+        r'\bdata-(?:figure-)?aspect=["\']\s*([0-9.]+)\s*/\s*([0-9.]+)\s*["\']',
+        html_text,
+        re.I,
+    )
+    if explicit:
+        width, height = explicit.groups()
+        return f"{width} / {height}"
+
+    viewbox = re.search(
+        r'\bviewBox=["\']\s*[-0-9.]+\s+[-0-9.]+\s+([0-9.]+)\s+([0-9.]+)\s*["\']',
+        html_text,
+        re.I,
+    )
+    if viewbox:
+        width, height = viewbox.groups()
+        return f"{width} / {height}"
+
+    return None
+
+
+def interactive_figure_info(src: str, blog_dir: Path | None) -> tuple[str, str | None] | None:
+    asset_file = blog_asset_file_for_url(blog_dir, src)
+    if asset_file is None:
+        return None
+
+    html_file = asset_file if asset_file.suffix.lower() == ".html" else asset_file.with_suffix(".html")
+    if html_file.exists():
+        html_src = str(src) if asset_file.suffix.lower() == ".html" else str(src)[: -len(asset_file.suffix)] + ".html"
+        aspect_ratio = blog_html_aspect_ratio(html_file) or blog_image_aspect_ratio(asset_file)
+        return html_src, aspect_ratio
+    return None
+
+
+def wrap_blog_figures(html_text: str, blog_dir: Path | None = None) -> str:
+    """Promote standalone Markdown images to figures with optional captions."""
+    def replace_figure(match):
+        img_html = match.group(1)
+        alt_match = re.search(r'\balt="([^"]*)"', img_html)
+        alt_text = html.unescape(alt_match.group(1)).strip() if alt_match else ""
+        src_match = re.search(r'\bsrc="([^"]*)"', img_html)
+        src = src_match.group(1) if src_match else ""
+        caption = f"<figcaption>{html.escape(alt_text)}</figcaption>" if alt_text else ""
+        html_figure = interactive_figure_info(src, blog_dir)
+        if html_figure:
+            html_src, aspect_ratio = html_figure
+            title = html.escape(alt_text or "Interactive figure", quote=True)
+            style_attr = (
+                f' style="--blog-figure-aspect: {html.escape(aspect_ratio, quote=True)};"'
+                if aspect_ratio
+                else ""
+            )
+            return (
+                '<figure class="blog-figure blog-figure-interactive">'
+                f'<div class="blog-html-figure-frame"{style_attr}>'
+                f'<iframe src="{html.escape(html_src, quote=True)}" title="{title}" '
+                'loading="lazy" sandbox="allow-scripts"></iframe>'
+                "</div>"
+                f"{caption}"
+                "</figure>"
+            )
+        return f'<figure class="blog-figure">{img_html}{caption}</figure>'
+
+    return re.sub(r"<p>\s*(<img\b[^>]*>)\s*</p>", replace_figure, html_text)
+
+
+def blog_code_lexer(language: str, code_text: str):
+    """Choose a Pygments lexer from the fence language."""
+    if pygments_highlight is None:
+        return None
+
+    normalized = str(language or "").strip().lower()
+    if normalized and normalized not in {"code", "text", "txt", "plain", "plaintext"}:
+        try:
+            return get_lexer_by_name(normalized)
+        except ClassNotFound:
+            pass
+
+    return TextLexer()
+
+
+def highlight_blog_code(code_html: str, language: str) -> str:
+    """Apply broad syntax highlighting to fenced code blocks."""
+    code_text = html.unescape(code_html)
+    lexer = blog_code_lexer(language, code_text)
+    if lexer is None:
+        return html.escape(code_text)
+
+    formatter = HtmlFormatter(nowrap=True, classprefix="pg-")
+    return pygments_highlight(code_text, lexer, formatter).rstrip("\n")
+
+
+def wrap_blog_code_blocks(html_text: str) -> str:
+    """Add a lightweight shell around fenced code blocks."""
+    def replace_code(match):
+        class_attr = match.group(1) or ""
+        code_html = match.group(2)
+        lang_match = re.search(r"language-([A-Za-z0-9_+-]+)", class_attr)
+        language = lang_match.group(1) if lang_match else "code"
+        highlighted_code = highlight_blog_code(code_html, language)
+        return (
+            '<div class="blog-code-block">'
+            '<button class="copy-btn" type="button" data-code-copy '
+            'aria-label="Copy code" title="Copy code">'
+            '<svg class="copy-icon copy-icon-copy" aria-hidden="true" viewBox="0 0 24 24">'
+            '<rect x="9" y="9" width="10" height="10" rx="1.5"></rect>'
+            '<path d="M5 15V6.5A1.5 1.5 0 0 1 6.5 5H15"></path>'
+            '</svg>'
+            '<svg class="copy-icon copy-icon-check" aria-hidden="true" viewBox="0 0 24 24">'
+            '<path d="M5 12.5 10 17l9-10"></path>'
+            '</svg>'
+            '<span class="sr-only copy-status" aria-live="polite">Copy code</span>'
+            '</button>'
+            f'<pre><code{class_attr}>{highlighted_code}</code></pre>'
+            '</div>'
+        )
+
+    return re.sub(
+        r"<pre><code([^>]*)>(.*?)</code></pre>",
+        replace_code,
+        html_text,
+        flags=re.DOTALL,
+    )
+
+
+def enhance_blog_html(html_text: str, blog_dir: Path | None = None) -> str:
+    html_text = rewrite_blog_asset_paths(html_text)
+    html_text = wrap_blog_tables(html_text)
+    html_text = wrap_blog_figures(html_text, blog_dir)
+    html_text = wrap_blog_code_blocks(html_text)
+    return html_text
+
+
+def load_blog_posts(content_dir: Path) -> list[dict]:
+    """Load Markdown blog posts from content/blog."""
+    blog_dir = content_dir / "blog"
+    if not blog_dir.exists():
+        return []
+
+    posts = []
+    used_slugs = set()
+    for post_file in sorted(blog_dir.glob("*.md")):
+        raw_text = post_file.read_text(encoding="utf-8")
+        metadata, md_text = parse_front_matter(raw_text)
+        defaults = BLOG_DEFAULT_METADATA.get(post_file.name, {})
+        title, body_without_title = extract_blog_title(md_text, metadata, post_file.stem)
+        summary, article_body = extract_blog_summary(body_without_title, metadata)
+        slug = slugify(metadata.get("slug") or title, post_file.stem)
+        if slug in used_slugs:
+            slug = slugify(f"{slug}-{post_file.stem}", post_file.stem)
+        used_slugs.add(slug)
+
+        date_value = metadata.get("date") or defaults.get("date")
+        date = parse_blog_date(date_value, post_file)
+        category = infer_blog_category(title, {**defaults, **metadata})
+        author = normalize_blog_author(
+            metadata.get("author") or metadata.get("authors") or defaults.get("author")
+        )
+        keywords = normalize_blog_keywords(
+            metadata.get("keywords") or metadata.get("tags") or defaults.get("keywords")
+        )
+        html_content, toc = render_blog_markdown(article_body)
+        html_content = enhance_blog_html(html_content, blog_dir)
+
+        posts.append(
+            {
+                "title": title,
+                "summary": summary,
+                "slug": slug,
+                "url": f"/blog/{slug}/",
+                "date": date.strftime("%Y-%m-%d"),
+                "date_label": format_blog_date(date),
+                "year": date.year,
+                "category": category,
+                "author": author,
+                "keywords": keywords,
+                "read_minutes": estimate_read_minutes(md_text),
+                "html": html_content,
+                "toc": toc,
+                "source_path": str(post_file),
+            }
+        )
+
+    posts.sort(key=lambda post: (post["date"], post["title"]), reverse=True)
+    return posts
+
+
+def group_blog_posts(posts: list[dict]) -> list[dict]:
+    groups = []
+    for post in posts:
+        if not groups or groups[-1]["year"] != post["year"]:
+            groups.append({"year": post["year"], "posts": []})
+        groups[-1]["posts"].append(post)
+    return groups
+
+
 def load_markdown_content(content_dir: Path, resource_links: dict) -> dict:
     """Load about.md and split by H2 sections; extract sidebar resource URLs."""
     import re
@@ -951,6 +1439,35 @@ def copy_chromium_files(src_dir: Path, dest_dir: Path):
             shutil.rmtree(data_dest)
         shutil.copytree(data_src, data_dest)
         print(f"✓ Copied data/")
+
+
+def copy_blog_assets(src_dir: Path, dest_dir: Path):
+    """Copy non-Markdown files from content/blog for Markdown figures."""
+    blog_src = src_dir / "content" / "blog"
+    if not blog_src.exists():
+        return
+
+    blog_assets = [
+        path
+        for path in blog_src.rglob("*")
+        if path.is_file() and path.suffix.lower() != ".md"
+    ]
+    if not blog_assets:
+        return
+
+    blog_dest = dest_dir / "blog" / "assets"
+    if blog_dest.exists():
+        shutil.rmtree(blog_dest)
+    for src_file in blog_assets:
+        source_assets_dir = blog_src / "assets"
+        try:
+            rel_path = src_file.relative_to(source_assets_dir)
+        except ValueError:
+            rel_path = src_file.relative_to(blog_src)
+        dest_file = blog_dest / rel_path
+        dest_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_file, dest_file)
+    print(f"✓ Copied {len(blog_assets)} blog assets")
 
 
 def esc(value) -> str:
@@ -1093,10 +1610,10 @@ def render_base_html_stdlib(
     <link rel="icon" type="image/png" href="{asset_prefix}img/secbench.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{asset_prefix}css/core.css?v=6">
-    <link rel="stylesheet" href="{asset_prefix}css/layout.css?v=16">
-    <link rel="stylesheet" href="{asset_prefix}css/components.css?v=19">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{asset_prefix}css/core.css?v=7">
+    <link rel="stylesheet" href="{asset_prefix}css/layout.css?v=18">
+    <link rel="stylesheet" href="{asset_prefix}css/components.css?v=36">
     <link rel="stylesheet" href="{asset_prefix}css/filters.css?v=6">
     <link rel="stylesheet" href="{asset_prefix}css/sidebar.css?v=5">
 </head>
@@ -1111,6 +1628,7 @@ def render_base_html_stdlib(
                 {nav_mode_resource_link(pro_links.get("paper_url"), classic_links.get("paper_url"), "Paper")}
                 {nav_mode_resource_link(pro_links.get("code_url"), classic_links.get("code_url"), "Code")}
                 {nav_mode_resource_link(pro_links.get("data_url"), classic_links.get("data_url"), "Data")}
+                <a href="{site_root}blog/">Blog</a>
                 <a href="{site_root}citations.html">Cite</a>
                 {nav_mode_resource_link(f"{site_root}submit.html", f"{site_root}submit.html?mode=classic", "Submit")}
             </nav>
@@ -1860,6 +2378,96 @@ def render_citations_body_stdlib(citations: list[dict]) -> tuple[str, str]:
     return body, '<script src="js/citation.js?v=2"></script>'
 
 
+def render_blog_index_body_stdlib(blog_posts: list[dict]) -> str:
+    posts_html = []
+    for post in blog_posts:
+        author = (
+            f'<span>{esc(post.get("author"))}</span><span aria-hidden="true"> · </span>'
+            if post.get("author")
+            else ""
+        )
+        posts_html.append(
+            '<article class="blog-list-item">'
+            f'<time class="blog-list-date" datetime="{esc(post.get("date"))}">{esc(post.get("date_label"))}</time>'
+            '<div class="blog-list-main">'
+            f'<h3><a href="{esc(post.get("url"))}">{esc(post.get("title"))}</a></h3>'
+            f'<p class="blog-byline">{author}<span>{esc(post.get("read_minutes"))} min read</span></p>'
+            '</div>'
+            '</article>'
+        )
+
+    if posts_html:
+        list_html = f'<section class="blog-list" aria-label="Research posts">{"".join(posts_html)}</section>'
+    else:
+        list_html = '<section class="blog-empty"><p>No blog posts are published yet.</p></section>'
+
+    return f"""
+<div class="blog-page">
+    <header class="blog-page-head">
+        <h1 class="blog-page-title">Research</h1>
+    </header>
+    {list_html}
+</div>"""
+
+
+def render_blog_toc_items_stdlib(items: list[dict]) -> str:
+    parts = []
+    for item in items or []:
+        children = ""
+        if item.get("children"):
+            children = f"<ol>{render_blog_toc_items_stdlib(item['children'])}</ol>"
+        parts.append(
+            f'<li class="blog-toc-item blog-toc-level-{esc(item.get("level"))}">'
+            f'<a href="#{esc(item.get("id"))}">{esc(item.get("title"))}</a>'
+            f"{children}</li>"
+        )
+    return "".join(parts)
+
+
+def render_blog_post_body_stdlib(post: dict) -> str:
+    author = (
+        f'<span aria-hidden="true"> · </span>{esc(post.get("author"))}'
+        if post.get("author")
+        else ""
+    )
+    summary = (
+        f'<p class="blog-post-summary">{esc(post.get("summary"))}</p>'
+        if post.get("summary")
+        else ""
+    )
+    toc = ""
+    layout_class = "blog-post-layout-single"
+    if post.get("toc"):
+        layout_class = ""
+        toc = (
+            '<aside class="blog-toc" data-blog-toc aria-label="Table of contents">'
+            '<div class="blog-toc-inner">'
+            '<p class="blog-toc-title">Contents</p>'
+            f'<nav><ol>{render_blog_toc_items_stdlib(post["toc"])}</ol></nav>'
+            "</div></aside>"
+        )
+
+    return f"""
+<article class="blog-post-page">
+    <div class="blog-post-layout {layout_class}">
+        {toc}
+        <div class="blog-post-wrap">
+            <a class="blog-back-link" href="/blog/">Back to Blog</a>
+            <header class="blog-post-head">
+                <p class="blog-post-meta">
+                    <time datetime="{esc(post.get("date"))}">{esc(post.get("date_label"))}</time>
+                    {author}
+                    <span aria-hidden="true"> · </span>{esc(post.get("read_minutes"))} min read
+                </p>
+                <h1 class="blog-post-title">{esc(post.get("title"))}</h1>
+                {summary}
+            </header>
+            <div class="blog-post-content">{post.get("html", "")}</div>
+        </div>
+    </div>
+</article>"""
+
+
 def prepare_site_data(base_dir: Path):
     """Load and normalize all data shared by both renderers."""
     data_dir = base_dir / "data"
@@ -1869,6 +2477,7 @@ def prepare_site_data(base_dir: Path):
     citations_data = load_citations_data(data_dir / "citations.yaml")
     resource_links = normalize_resource_links(base_leaderboards_data)
     markdown_content = load_markdown_content(content_dir, resource_links)
+    blog_posts = load_blog_posts(content_dir)
     results_bundle = load_results_data(data_dir)
     pro_versions = []
 
@@ -1933,6 +2542,8 @@ def prepare_site_data(base_dir: Path):
         "leaderboards_data": leaderboards_data,
         "citations_data": citations_data,
         "markdown_content": markdown_content,
+        "blog_posts": blog_posts,
+        "blog_post_groups": group_blog_posts(blog_posts),
         "run_details": run_details,
         "legacy_config": legacy_config,
         "pro_stats": pro_stats,
@@ -1955,6 +2566,8 @@ def build_site_stdlib():
     leaderboards_data = data["leaderboards_data"]
     citations_data = data["citations_data"]
     markdown_content = data["markdown_content"]
+    blog_posts = data["blog_posts"]
+    blog_post_groups = data["blog_post_groups"]
     run_details = data["run_details"]
     legacy_config = data["legacy_config"]
     legacy_stats = data["legacy_stats"]
@@ -1965,6 +2578,7 @@ def build_site_stdlib():
     )
     print(f"✓ Loaded {leaderboard_count} leaderboards")
     print(f"✓ Loaded {len(citations_data)} citation tabs")
+    print(f"✓ Loaded {len(blog_posts)} blog posts")
     print(f"✓ Loaded {sum(len(version['run_details']) for version in pro_versions)} versioned run detail files")
 
     if dist_dir.exists():
@@ -1974,6 +2588,7 @@ def build_site_stdlib():
     print("\nCopying static files...")
     copy_static_files(base_dir, dist_dir)
     copy_chromium_files(base_dir, dist_dir)
+    copy_blog_assets(base_dir, dist_dir)
 
     website_title = leaderboards_data.get("website_title", "SEC-bench Leaderboard")
     website_subtitle = leaderboards_data.get("website_subtitle", None)
@@ -2110,6 +2725,38 @@ def build_site_stdlib():
         output_file.write_text(html_text, encoding="utf-8")
         print(f"✓ Rendered {page_name}")
 
+    blog_index_body = render_blog_index_body_stdlib(blog_posts)
+    blog_index_html = render_base_html_stdlib(
+        "SEC-bench Research",
+        blog_index_body,
+        markdown_content,
+        footer_links,
+        current_year,
+        asset_prefix="../",
+        website_subtitle=website_subtitle,
+    )
+    blog_index_file = dist_dir / "blog" / "index.html"
+    blog_index_file.parent.mkdir(parents=True, exist_ok=True)
+    blog_index_file.write_text(blog_index_html, encoding="utf-8")
+    print("✓ Rendered blog/index.html")
+
+    for post in blog_posts:
+        post_body = render_blog_post_body_stdlib(post)
+        post_html = render_base_html_stdlib(
+            f"{post['title']} | SEC-bench Blog",
+            post_body,
+            markdown_content,
+            footer_links,
+            current_year,
+            asset_prefix="../../",
+            scripts_extra='<script src="../../js/blog.js?v=3"></script>',
+            website_subtitle=post.get("summary") or website_subtitle,
+        )
+        output_file = dist_dir / "blog" / post["slug"] / "index.html"
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.write_text(post_html, encoding="utf-8")
+        print(f"✓ Rendered blog/{post['slug']}/index.html")
+
     print("\n✅ Build complete! Output in dist/")
     print(f"   Run: python3 -m http.server --directory dist/ 8000")
 
@@ -2141,6 +2788,8 @@ def build_site():
     leaderboards_data = data["leaderboards_data"]
     citations_data = data["citations_data"]
     markdown_content = data["markdown_content"]
+    blog_posts = data["blog_posts"]
+    blog_post_groups = data["blog_post_groups"]
     legacy_config = data["legacy_config"]
     legacy_stats = data["legacy_stats"]
     pro_versions = data["pro_versions"]
@@ -2150,6 +2799,7 @@ def build_site():
 
     print(f"✓ Loaded {leaderboard_count} leaderboards")
     print(f"✓ Loaded {len(citations_data)} citation tabs")
+    print(f"✓ Loaded {len(blog_posts)} blog posts")
     print(f"✓ Loaded {len(markdown_content)} markdown content files")
     print(f"✓ Loaded {sum(len(version['run_details']) for version in pro_versions)} versioned run detail files")
 
@@ -2176,6 +2826,7 @@ def build_site():
     print("\nCopying static files...")
     copy_static_files(base_dir, dist_dir)
     copy_chromium_files(base_dir, dist_dir)
+    copy_blog_assets(base_dir, dist_dir)
 
     # Render pages
     print("\nRendering pages...")
@@ -2201,6 +2852,8 @@ def build_site():
         "legacy_config": legacy_config,
         "legacy_stats": legacy_stats,
         "citations": citations_data,
+        "blog_posts": blog_posts,
+        "blog_post_groups": blog_post_groups,
         "current_year": datetime.now().year,
         "asset_prefix": "",
         "site_root": "/",
@@ -2336,6 +2989,44 @@ def build_site():
             print(f"✓ Rendered {page_name}")
         except Exception as e:
             print(f"⚠ Warning: Could not render {page_name}: {e}")
+
+    try:
+        blog_index_template = env.get_template("pages/blog_index.html")
+        html = blog_index_template.render(
+            **{
+                **base_context,
+                "asset_prefix": "../",
+                "leaderboard_items": leaderboards_data["leaderboards"],
+                "site_config": leaderboards_data,
+                "all_leaderboards": data["all_leaderboards"],
+                "pro_stats": data["pro_stats"],
+            }
+        )
+        output_file = dist_dir / "blog" / "index.html"
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.write_text(html)
+        print("✓ Rendered blog/index.html")
+
+        blog_post_template = env.get_template("pages/blog_post.html")
+        for post in blog_posts:
+            html = blog_post_template.render(
+                **{
+                    **base_context,
+                    "post": post,
+                    "asset_prefix": "../../",
+                    "website_subtitle": post.get("summary") or website_subtitle,
+                    "leaderboard_items": leaderboards_data["leaderboards"],
+                    "site_config": leaderboards_data,
+                    "all_leaderboards": data["all_leaderboards"],
+                    "pro_stats": data["pro_stats"],
+                }
+            )
+            output_file = dist_dir / "blog" / post["slug"] / "index.html"
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            output_file.write_text(html)
+            print(f"✓ Rendered blog/{post['slug']}/index.html")
+    except Exception as e:
+        print(f"⚠ Warning: Could not render blog pages: {e}")
 
     print("\n✅ Build complete! Output in dist/")
     print(f"   Run: python3 -m http.server --directory dist/ 8000")
