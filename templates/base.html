@@ -10,11 +10,11 @@
     <link rel="icon" type="image/png" href="{{ asset_prefix }}img/secbench.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="{{ asset_prefix }}css/core.css?v=6">
-    <link rel="stylesheet" href="{{ asset_prefix }}css/layout.css?v=16">
-    <link rel="stylesheet" href="{{ asset_prefix }}css/components.css?v=19">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/core.css?v=7">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/layout.css?v=18">
+    <link rel="stylesheet" href="{{ asset_prefix }}css/components.css?v=36">
     <link rel="stylesheet" href="{{ asset_prefix }}css/filters.css?v=6">
     <link rel="stylesheet" href="{{ asset_prefix }}css/sidebar.css?v=5">
 
@@ -50,6 +50,7 @@
                 {{ nav_mode_link(content.resource_links.pro.paper_url, content.resource_links.classic.paper_url, 'Paper') }}
                 {{ nav_mode_link(content.resource_links.pro.code_url, content.resource_links.classic.code_url, 'Code') }}
                 {{ nav_mode_link(content.resource_links.pro.data_url, content.resource_links.classic.data_url, 'Data') }}
+                <a href="{{ site_root }}blog/">Blog</a>
                 <a href="{{ site_root }}citations.html">Cite</a>
                 {{ nav_mode_link(site_root ~ 'submit.html', site_root ~ 'submit.html?mode=classic', 'Submit') }}
             </nav>
