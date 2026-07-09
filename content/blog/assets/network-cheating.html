@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<!--
+  Interactive version of the network-cheating bar chart.
+  Self-contained: no build step, no dependencies. Open directly in a browser
+  or embed as an <iframe src="assets/network-cheating.html"> in the post.
+  Hover (or focus with Tab) any bar to read the exact score and solved count.
+-->
+<html lang="en" data-palette="#9198a1,#ff6a1a">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network access inflates benchmark scores</title>
+<style>
+  :root{
+    --bg:#0f0f0f; --grid:#242424; --ink:#ededed; --muted:#8b9096;
+    --gray:#9198a1; --orange:#ff6a1a; --surface:#1c1c1b;
+  }
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 12px;}
+  .legend{display:flex;gap:22px;justify-content:flex-end;font-size:14px;margin-bottom:6px;}
+  .legend span{display:inline-flex;align-items:center;gap:7px;color:var(--ink);}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block;}
+  svg{width:100%;height:auto;display:block;overflow:visible;}
+  .bar{transition:opacity .12s ease;cursor:default;}
+  .bar:hover,.bar:focus{opacity:.82;outline:none;}
+  .axis{fill:var(--muted);font-size:14px;}
+  .cat{fill:var(--ink);font-size:17px;font-weight:600;}
+  .gridline{stroke:var(--grid);stroke-width:1;}
+  .vlabel{font-size:15px;font-weight:700;}
+  /* tooltip */
+  .tip{position:absolute;pointer-events:none;opacity:0;transition:opacity .1s ease;
+    background:var(--surface);border:1px solid #3a3a39;border-radius:10px;
+    padding:10px 13px;font-size:14px;line-height:1.45;color:var(--ink);
+    box-shadow:0 6px 20px rgba(0,0,0,.5);white-space:nowrap;transform:translate(-50%,-115%);}
+  .tip b{font-weight:700;}
+  .tip .sub{color:var(--muted);}
+  @media (prefers-reduced-motion: reduce){.bar,.tip{transition:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="legend">
+    <span><i class="dot" style="background:var(--gray)"></i>Network enabled</span>
+    <span><i class="dot" style="background:var(--orange)"></i>Network restricted</span>
+  </div>
+  <svg id="chart" viewBox="0 0 760 430" role="img"
+       aria-label="Linux benchmark score for GPT-5.5, GPT-5.4, and GLM-5, network enabled versus restricted.">
+    <title>Network access inflates benchmark scores</title>
+  </svg>
+  <div class="tip" id="tip" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+const data = [
+  {model:'GPT-5.5',
+   enabled:{pct:89.1, solved:122}, restricted:{pct:77.4, solved:106}},
+  {model:'GPT-5.4',
+   enabled:{pct:76.6, solved:105}, restricted:{pct:52.6, solved:72}},
+  {model:'GLM-5',
+   enabled:{pct:10.2, solved:14},  restricted:{pct:3.6,  solved:5}},
+];
+const TOTAL = 137;
+const C = {gray:'#9198a1', orange:'#ff6a1a', grid:'#242424', muted:'#8b9096', ink:'#ededed'};
+
+const W=760, H=430, m={t:24,r:16,b:46,l:44};
+const iw=W-m.l-m.r, ih=H-m.t-m.b;
+const yMax=100, y=v=> m.t + ih*(1 - v/yMax);
+const svg=document.getElementById('chart');
+const tip=document.getElementById('tip');
+const NS='http://www.w3.org/2000/svg';
+const el=(t,a={})=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+
+// gridlines + y labels
+[0,20,40,60,80,100].forEach(v=>{
+  svg.appendChild(el('line',{class:'gridline',x1:m.l,x2:W-m.r,y1:y(v),y2:y(v)}));
+  const t=el('text',{x:m.l-10,y:y(v)+5,'text-anchor':'end'});t.setAttribute('class','axis');
+  t.textContent=v;svg.appendChild(t);
+});
+
+const groupW=iw/data.length, bw=54, gap=8;
+data.forEach((d,i)=>{
+  const cx=m.l+groupW*i+groupW/2;
+  const bars=[
+    {x:cx-bw-gap/2, key:'enabled',    label:'Network enabled',    color:C.gray,   v:d.enabled},
+    {x:cx+gap/2,    key:'restricted', label:'Network restricted', color:C.orange, v:d.restricted},
+  ];
+  bars.forEach(b=>{
+    const h=ih*(b.v.pct/yMax);
+    const r=el('rect',{class:'bar', x:b.x, y:y(b.v.pct), width:bw, height:h, rx:4,
+      fill:b.color, tabindex:0, role:'img',
+      'aria-label':`${d.model}, ${b.label}: ${b.v.pct.toFixed(1)} percent, ${b.v.solved} of ${TOTAL} solved.`});
+    const show=(ev)=>{
+      const box=svg.getBoundingClientRect();
+      const px=box.left+window.scrollX + (b.x+bw/2)/W*box.width;
+      const py=box.top +window.scrollY + y(b.v.pct)/H*box.height;
+      tip.innerHTML=`<b>${d.model} &middot; ${b.label}</b><br>`+
+                    `<b>${b.v.pct.toFixed(1)}%</b> `+
+                    `<span class="sub">(${b.v.solved} / ${TOTAL} solved)</span>`;
+      tip.style.left=px+'px'; tip.style.top=py+'px'; tip.style.opacity=1;
+    };
+    const hide=()=>{tip.style.opacity=0;};
+    r.addEventListener('mouseenter',show); r.addEventListener('mousemove',show);
+    r.addEventListener('mouseleave',hide);
+    r.addEventListener('focus',show);      r.addEventListener('blur',hide);
+    svg.appendChild(r);
+    // value label on top
+    const t=el('text',{x:b.x+bw/2, y:y(b.v.pct)-8, 'text-anchor':'middle',
+      fill:b.key==='enabled'?C.muted:C.orange});
+    t.setAttribute('class','vlabel'); t.textContent=b.v.pct.toFixed(1);
+    svg.appendChild(t);
+  });
+  // category label
+  const ct=el('text',{x:cx, y:H-m.b+30, 'text-anchor':'middle'});
+  ct.setAttribute('class','cat'); ct.textContent=d.model; svg.appendChild(ct);
+});
+// baseline
+svg.appendChild(el('line',{x1:m.l,x2:W-m.r,y1:y(0),y2:y(0),stroke:C.muted,'stroke-width':1}));
+</script>
+</body>
+</html>
