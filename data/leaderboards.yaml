@@ -98,6 +98,34 @@ provider_reported_results:
         - {name: DeepSeek-V4.1-Flash, pass_at_1: 62.8}
         - {name: DeepSeek-V4-Pro, pass_at_1: 56.4}
         - {name: DeepSeek-V4-Flash, pass_at_1: 30.9}
+    - provider: AWS continuum
+      backend: AWS Bedrock
+      source_snapshot: '260617'
+      models:
+        - name: Opus 5
+          agent: AWS Continuum
+          effort: max
+          show_agent: true
+          solved_by_project: {v8: 80, firefox: 51}
+        - name: Opus 5
+          agent: Claude Code
+          effort: max
+          provider: Anthropic
+          solved_by_project: {v8: 72, firefox: 46}
+  '260617':
+    - provider: AWS continuum
+      backend: AWS Bedrock
+      models:
+        - name: Opus 5
+          agent: AWS Continuum
+          effort: max
+          show_agent: true
+          solved_by_project: {v8: 80, firefox: 70, linux: 118}
+        - name: Opus 5
+          agent: Claude Code
+          effort: max
+          provider: Anthropic
+          solved_by_project: {v8: 72, firefox: 60, linux: 109}
 
 pro_common_info_sections: &pro_common_info_sections
   - title: News

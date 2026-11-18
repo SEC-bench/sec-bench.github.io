@@ -150,6 +150,7 @@ ORG_LOGOS = {
     # Cloud/Enterprise
     "Amazon": "https://avatars.githubusercontent.com/u/2232217?s=200&v=4",
     "AWS": "https://avatars.githubusercontent.com/u/2232217?s=200&v=4",
+    "AWS continuum": "/img/aws.svg",
     "Microsoft": "https://avatars.githubusercontent.com/u/6154722?s=200&v=4",
     "Meta": "https://avatars.githubusercontent.com/u/69631?s=200&v=4",
     "Alibaba": "https://avatars.githubusercontent.com/u/1961952?s=200&v=4",
@@ -417,7 +418,17 @@ def percent(solved: int, total: int) -> float:
     """Return a one-decimal percentage for scoreboard display."""
     if not total:
         return 0.0
-    return round(solved / total * 100, 1)
+    return round(solved * 100 / total, 1)
+
+
+def score_mode(solved: int, total: int) -> dict:
+    score = percent(solved, total)
+    return {
+        "solved": solved,
+        "total": total,
+        "score": score,
+        "score_label": f"{solved}/{total} ({score:.1f}%)" if total else "0/0 (0.0%)",
+    }
 
 
 def int_value(value, default: int = 0) -> int:
@@ -644,30 +655,72 @@ def url_prefix_for_version(version_name: str, default_version: str | None) -> st
     return f"/{version_name}"
 
 
+def provider_score_rows(report: dict, model: dict, boards: dict[str, dict]) -> dict:
+    submitter = report["provider"]
+    row = {
+        "model": model["name"],
+        "org": model.get("provider", submitter),
+        "backend": report.get("backend", ""),
+        "open_source": report.get("open_source", False),
+        "reported": True,
+    }
+    if row["org"] != submitter:
+        row["submitted_by"] = submitter
+    if "solved_by_project" not in model:
+        return {"overall": {**row, "resolved": model["pass_at_1"]}}
+
+    row.update(agent=model["agent"], effort=model.get("effort"), show_agent=model.get("show_agent", False))
+    if report.get("source_snapshot"):
+        row["source_snapshot"] = report["source_snapshot"]
+    counts = model["solved_by_project"]
+    projects = {name: board for name, board in boards.items() if name != "overall"}
+    if counts.keys() != projects.keys():
+        raise ValueError(f'{model["agent"]} must include counts for every project in the snapshot')
+
+    rows = {}
+    parts = []
+    for name, board in projects.items():
+        solved = counts[name]
+        total = board["instances"]
+        if type(solved) is not int or not 0 <= solved <= total:
+            raise ValueError(f'Invalid solved count for {model["agent"]} on {name}: {solved}')
+        score = score_mode(solved, total)
+        rows[name] = {**row, "resolved": score["score"], "score_modes": {"headline": score}}
+        parts.append({"name": name, "label": board["display_name"], "score_modes": {"headline": score}})
+
+    overall_total = sum(board["instances"] for board in projects.values())
+    if overall_total != boards["overall"]["instances"]:
+        raise ValueError("Project totals do not match the Overall leaderboard")
+    overall_score = score_mode(sum(counts.values()), overall_total)
+    rows["overall"] = {
+        **row,
+        "resolved": overall_score["score"],
+        "score_modes": {"headline": overall_score},
+        "projects": parts,
+    }
+    return rows
+
+
 def merge_provider_scores(leaderboards: list[dict], reports: list[dict]) -> None:
-    overall = next((board for board in leaderboards if board["name"] == "overall"), None)
-    if overall is None or not reports:
+    boards = {board["name"]: board for board in leaderboards}
+    if "overall" not in boards or not reports:
         return
 
-    results = overall["results"]
+    updated_boards = set()
     for report in reports:
-        results.extend(
-            {
-                "model": model["name"],
-                "org": report["provider"],
-                "backend": report.get("backend", ""),
-                "open_source": report.get("open_source", False),
-                "resolved": model["pass_at_1"],
-                "reported": True,
-            }
-            for model in report["models"]
-        )
+        for model in report["models"]:
+            for name, result in provider_score_rows(report, model, boards).items():
+                boards[name]["results"].append(result)
+                updated_boards.add(name)
 
-    results.sort(key=lambda result: result["resolved"], reverse=True)
-    for rank, result in enumerate(results, 1):
-        result["rank"] = rank
-        if not result.get("reported"):
-            result["score_modes"]["headline"]["rank"] = rank
+    for name in updated_boards:
+        results = boards[name]["results"]
+        results.sort(key=lambda result: result["resolved"], reverse=True)
+        for rank, result in enumerate(results, 1):
+            result["rank"] = rank
+            headline = result.get("score_modes", {}).get("headline")
+            if headline is not None:
+                headline["rank"] = rank
 
 
 def prepare_pro_version(
@@ -1663,7 +1716,7 @@ def render_base_html_stdlib(
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{asset_prefix}css/core.css?v=7">
     <link rel="stylesheet" href="{asset_prefix}css/layout.css?v=18">
-    <link rel="stylesheet" href="{asset_prefix}css/components.css?v=37">
+    <link rel="stylesheet" href="{asset_prefix}css/components.css?v=38">
     <link rel="stylesheet" href="{asset_prefix}css/filters.css?v=7">
     <link rel="stylesheet" href="{asset_prefix}css/sidebar.css?v=5">
 </head>
@@ -1776,6 +1829,14 @@ def render_pro_score_row(result: dict, leaderboard: dict) -> str:
     model = result["model"]
     if result.get("effort"):
         model += f' ({result["effort"]})'
+    displayed_agent = result.get("agent") if result.get("show_agent") else None
+    if displayed_agent:
+        model += f" · {displayed_agent}"
+    provenance = []
+    if submitter := result.get("submitted_by"):
+        provenance.append(f"Submitted by {submitter}")
+    if source_snapshot := result.get("source_snapshot"):
+        provenance.append(f"Subset of {source_snapshot} run")
     model = esc(model)
     provider = esc(result["org"])
     rank = esc(result["rank"])
@@ -1809,22 +1870,26 @@ def render_pro_score_row(result: dict, leaderboard: dict) -> str:
             project_items.append(
                 f'<div><dt>{project_label}</dt><dd>{esc(score_label)}</dd></div>'
             )
-        run_context = result["agent"]
+        run_context = [] if displayed_agent else [result["agent"]]
         if result.get("projects"):
             headline = result["score_modes"]["headline"]
-            run_context += f' · {headline["solved"]}/{headline["total"]}'
+            run_context.append(f'{headline["solved"]}/{headline["total"]}')
+        run_context.extend(provenance)
         model_html = f"""
             <details class="project-disclosure">
                 <summary class="model-name">{model_name}</summary>
                 <div class="project-breakdown">
-                    <p class="model-meta">{esc(run_context)}</p>
+                    <p class="model-meta">{esc(" · ".join(run_context))}</p>
                     <dl class="project-results">{"".join(project_items)}</dl>
                 </div>
             </details>"""
     else:
         model_html = f'<div class="model-name">{model_name}</div>'
 
-    score_title = ' title="Reported pass@1"' if result.get("reported") else ""
+    score_title = ""
+    if result.get("reported"):
+        score_description = " · ".join(["Reported pass@1", *provenance])
+        score_title = f' title="{esc(score_description)}"'
     return f"""
         <tr class="leaderboard-row" data-scored="true" data-type="{model_type}"
             data-model="{model}" data-resolved="{score}" data-rank="{rank}"

@@ -462,6 +462,10 @@
     width: 30px;
 }
 
+.pro-table tr[data-org="OpenAI"] .org-logo {
+    padding: 0;
+}
+
 .badge,
 .status-pill {
     border: 1px solid var(--rule);

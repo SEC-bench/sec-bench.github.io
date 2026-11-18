@@ -18,6 +18,7 @@ from build import (
     normalize_run_detail_summary_metrics,
     percent,
     result_key,
+    score_mode,
     token_count_value,
     token_pair_from_counts,
 )
@@ -182,10 +183,6 @@ def csv_by_column(path: Path, column: str) -> dict[str, dict]:
     return {str(row.get(column, "")): row for row in rows if row.get(column)}
 
 
-def format_score_label(solved: int, total: int) -> str:
-    return f"{solved}/{total} ({percent(solved, total):.1f}%)" if total else "0/0 (0.0%)"
-
-
 def read_timeout_info(instance_dir: Path) -> dict:
     path = instance_dir / "timeout"
     if not path.exists():
@@ -276,15 +273,6 @@ def read_judge_usage(summary_dir: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return {}
-
-
-def score_mode(solved: int, total: int) -> dict:
-    return {
-        "solved": solved,
-        "total": total,
-        "score": percent(solved, total),
-        "score_label": format_score_label(solved, total),
-    }
 
 
 def apply_score_ranks(results: list[dict]):
