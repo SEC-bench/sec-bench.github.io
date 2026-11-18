@@ -17,6 +17,7 @@ from build import (
     load_yaml_data,
     normalize_run_detail_summary_metrics,
     percent,
+    result_key,
     token_count_value,
     token_pair_from_counts,
 )
@@ -32,18 +33,18 @@ RESULT_VERSIONS = (
         "date": "2026-05-05",
         "title": "Initial V8 + SpiderMonkey release",
         "summary": "103 V8 + 80 SpiderMonkey instances",
-        "default": False,
+        "default": True,
     },
     {
         "name": "260617",
         "date": "2026-06-17",
         "title": "Linux + SpiderMonkey extension",
         "summary": "103 V8 + 104 SpiderMonkey + 137 Linux instances",
-        "default": True,
+        "default": False,
     },
 )
 
-DEFAULT_RESULT_VERSION = "260617"
+DEFAULT_RESULT_VERSION = "260505"
 
 SM_260617_ADDED_IDS = {
     "1675905",
@@ -613,7 +614,7 @@ def load_trajectory_data(trajectories_dir: Path, site_config: dict) -> dict:
             "display_name": "Overall",
             "leaderboard": "overall",
             "status": "available",
-            "description": f"<strong>Overall</strong> aggregates V8, Firefox, and Linux into a <strong>{overall_total}</strong>-instance leaderboard. Split bars show how each project contributes to the score.",
+            "description": f"<strong>Overall</strong> aggregates V8, Firefox, and Linux into a <strong>{overall_total}</strong>-instance leaderboard.",
         }
     ]
     for project in PROJECTS:
@@ -658,15 +659,6 @@ def serialize_results_data(generated: dict) -> dict:
         "target_tabs": generated.get("target_tabs", []),
         "run_details": details,
     }
-
-
-def result_key(result: dict) -> tuple:
-    return (
-        result.get("agent"),
-        result.get("model"),
-        result.get("effort"),
-        result.get("org"),
-    )
 
 
 def result_slug(result: dict) -> str | None:
@@ -891,7 +883,7 @@ def build_snapshot_target_tabs(source_snapshot: dict, project_boards: list[dict]
             "leaderboard": "overall",
             "instances": overall_total,
             "status": "available",
-            "description": f"<strong>Overall</strong> aggregates V8 and Firefox into a <strong>{overall_total}</strong>-instance leaderboard. Split bars show how each project contributes to the score.",
+            "description": f"<strong>Overall</strong> aggregates V8 and Firefox into a <strong>{overall_total}</strong>-instance leaderboard.",
         }
     ]
 

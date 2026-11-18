@@ -53,12 +53,12 @@ After regenerating, review and commit the new `data/results.json`. Do not rely o
 
 ### Pro Versions
 
-Public Pro versions use the `YYMMDD` snapshot date as the version name. The latest version is the default root view.
+Public Pro versions use the `YYMMDD` snapshot date as the version name. The default snapshot is set in `data/results.json`.
 
-- `260505`: initial public snapshot with 103 V8 and 80 SpiderMonkey instances
-- `260617`: latest/default snapshot with 103 V8, 104 SpiderMonkey, and 137 Linux instances
+- `260505`: default snapshot with 103 V8 and 80 SpiderMonkey instances
+- `260617`: expanded snapshot with 103 V8, 104 SpiderMonkey, and 137 Linux instances
 
-The default version renders at `/`, `/v8`, `/firefox`, `/linux`, and their run-detail paths. Older versions render under their version prefix, for example `/260505` and `/260505/firefox`.
+The default version renders at `/`, `/v8`, `/firefox`, and their run-detail paths. The expanded snapshot renders under `/260617/`, including `/260617/linux/`. The site redirects bookmark URLs such as `/260505/` and `/linux/` to their current routes.
 
 ### Site Metadata And Legacy Results
 

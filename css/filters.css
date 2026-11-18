@@ -66,14 +66,13 @@
     border: 1px solid var(--rule);
     color: var(--ink-2);
     cursor: pointer;
-    font-family: var(--sans);
+    font-family: var(--mono);
     font-size: 12px;
     font-weight: 700;
     line-height: 1.2;
     min-height: 31px;
-    min-width: 0;
-    padding: 7px 24px 7px 9px;
-    width: 92px;
+    min-width: 116px;
+    padding: 7px 24px 7px 12px;
 }
 
 .version-select:hover,

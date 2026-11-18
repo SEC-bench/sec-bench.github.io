@@ -2,14 +2,6 @@
 
 {% block title %}{{ website_title }}{% endblock %}
 
-{% macro score_mode_attrs(result, mode) -%}
-data-{{ mode }}-score="{{ result.score_modes[mode].score }}"
-data-{{ mode }}-rank="{{ result.score_modes[mode].rank }}"
-data-{{ mode }}-score-label="{{ result.score_modes[mode].score_label }}"
-data-{{ mode }}-count="{{ result.score_modes[mode].solved }}/{{ result.score_modes[mode].total }}"
-data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_modes.headline.total }}"
-{%- endmacro %}
-
 {% macro render_stats(stats) %}
 <div class="stats-strip" aria-label="Benchmark summary">
     {% for stat in stats %}
@@ -21,40 +13,13 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
 </div>
 {% endmacro %}
 
-{% macro render_score_bar(result, leaderboard, supports_score_modes) %}
+{% macro render_score_bar(result) %}
 <div class="score-cell">
-    {% if supports_score_modes %}
-    <div class="score-number" data-score-value>{{ result.score_modes.headline.score }}%</div>
-    <div class="score-count" data-count-value>{{ result.score_modes.headline.solved }}/{{ result.score_modes.headline.total }}</div>
-    {% if leaderboard.is_overall and result.projects %}
-    <div class="split-score-bar" aria-label="Project contribution split">
-        {% for part in result.projects %}
-        <span class="score-segment score-segment-{{ part.name }}"
-              style="width: {{ part.score_modes.headline.width }}%"
-              data-headline-width="{{ part.score_modes.headline.width }}"
-              data-completed-width="{{ part.score_modes.completed.width }}"
-              data-headline-title="{{ part.label }}: {{ part.score_modes.headline.score_label }}"
-              data-completed-title="{{ part.label }}: {{ part.score_modes.completed.score_label }}"
-              title="{{ part.label }}: {{ part.score_modes.headline.score_label }}"></span>
-        {% endfor %}
-    </div>
-    <div class="split-legend">
-        {% for part in result.projects %}
-        <span><i class="legend-dot score-segment-{{ part.name }}"></i>{{ part.label }}</span>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="score-bar-track">
-        <span class="score-bar-fill" style="width: {{ result.score_modes.headline.score }}%"></span>
-    </div>
-    {% endif %}
-    {% else %}
     <div class="score-number">{{ result.resolved | format_percent }}</div>
     <div class="score-count">{{ result.score_label or 'resolved' }}</div>
     <div class="score-bar-track">
         <span class="score-bar-fill" style="width: {{ result.resolved }}%"></span>
     </div>
-    {% endif %}
 </div>
 {% endmacro %}
 
@@ -93,7 +58,8 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
 {% endif %}
 {% endmacro %}
 
-{% macro render_leaderboard_panel(mode, leaderboards, target_tabs, default_leaderboard, panel_title, panel_subtitle, panel_section_title, panel_section_description, stats, supports_score_modes, version_links=[]) %}
+{% macro render_leaderboard_panel(mode, leaderboards, target_tabs, default_leaderboard, panel_title, panel_subtitle, panel_section_title, panel_section_description, stats, version_links=[]) %}
+{% set is_pro = mode == 'pro' %}
 {% set active_leaderboard = default_leaderboard or leaderboards[0].name %}
 <section class="hero">
     <div class="container wide">
@@ -130,21 +96,6 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
                     </button>
                     {% endfor %}
                 </div>
-
-                {% if supports_score_modes %}
-                <div class="leaderboard-view-controls">
-                    <div class="score-mode-tabs" aria-label="Score basis">
-                        <button type="button" class="score-mode-tab active" data-score-mode="headline" aria-pressed="true">
-                            <span>Headline</span>
-                            <small>fixed budget</small>
-                        </button>
-                        <button type="button" class="score-mode-tab" data-score-mode="completed" aria-pressed="false">
-                            <span>Completed</span>
-                            <small>within timeout</small>
-                        </button>
-                    </div>
-                </div>
-                {% endif %}
             </div>
 
             <p class="target-description" data-target-description-container>
@@ -163,7 +114,7 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
                     {% set has_open = leaderboard.results | selectattr('open_source') | list | length > 0 %}
                     {% set has_prop = leaderboard.results | rejectattr('open_source') | list | length > 0 %}
 
-                    {% if supports_score_modes or (has_open and has_prop) %}
+                    {% if is_pro or (has_open and has_prop) %}
                     <div class="filter-controls">
                         {% if has_open and has_prop %}
                         <div class="filter-group">
@@ -175,95 +126,62 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
                             </div>
                         </div>
                         {% endif %}
-                        {% if supports_score_modes %}
+                        {% if is_pro %}
                         {{ render_version_tabs(version_links) }}
                         {% endif %}
                     </div>
                     {% endif %}
 
                     <div class="table-container">
-                        <table class="leaderboard-table" id="{{ leaderboard.name }}-table">
+                        <table class="leaderboard-table{{ ' pro-table' if is_pro else '' }}" id="{{ leaderboard.name }}-table">
                             <thead>
                                 <tr>
                                     <th class="rank-col sortable active asc" data-sort="rank">#</th>
-                                    <th class="model-col sortable" data-sort="model">{{ 'Model' if supports_score_modes else 'System' }}</th>
-                                    <th class="resolved-col sortable active desc" data-sort="resolved">{{ 'Success' if supports_score_modes else 'Score' }}</th>
-                                    {% if supports_score_modes %}
-                                    <th class="completed-col sortable" data-sort="completed">Completed</th>
-                                    {% endif %}
+                                    <th class="model-col sortable" data-sort="model">{{ 'Model' if is_pro else 'System' }}</th>
+                                    <th class="resolved-col sortable active desc" data-sort="resolved">{{ 'Success' if is_pro else 'Score' }}</th>
                                     <th class="org-col sortable" data-sort="org">Provider</th>
-                                    {% if supports_score_modes %}
+                                    {% if is_pro %}
                                     <th class="backend-col sortable" data-sort="backend">Backend</th>
                                     {% else %}
                                     <th class="date-col sortable" data-sort="date">Date</th>
-                                    {% endif %}
-                                    {% if not supports_score_modes %}
                                     <th class="logs-col">Artifacts</th>
                                     {% endif %}
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for result in leaderboard.results %}
+                                {% if is_pro %}
+                                {{ render_pro_score_row(result, leaderboard) | safe }}
+                                {% else %}
                                 <tr class="leaderboard-row {% if result.details_url %}leaderboard-row-clickable{% endif %}"
                                     data-scored="true"
                                     data-type="{% if result.open_source %}open-source{% else %}proprietary{% endif %}"
-                                    data-model="{% if supports_score_modes %}{{ result.model }}{% if result.effort %} {{ result.effort }}{% endif %} {{ result.agent }}{% else %}{{ result.model }}{% endif %}"
-                                    data-resolved="{% if supports_score_modes %}{{ result.score_modes.headline.score }}{% else %}{{ result.resolved }}{% endif %}"
+                                    data-model="{{ result.model }}"
+                                    data-resolved="{{ result.resolved }}"
                                     data-rank="{{ result.rank }}"
-                                    {% if supports_score_modes %}data-completed="{{ result.completed_instances }}"{% endif %}
                                     data-org="{{ result.org }}"
-                                    {% if supports_score_modes %}data-backend="{{ result.backend or '' }}"{% endif %}
                                     data-date="{{ result.date or '' }}"
-                                    {% if supports_score_modes %}
-                                    {{ score_mode_attrs(result, 'headline') }}
-                                    {{ score_mode_attrs(result, 'completed') }}
-                                    {% endif %}
                                     {% if result.details_url %}data-details-url="{{ result.details_url }}" tabindex="0" role="link" aria-label="View run details for {{ result.model }} by {{ result.agent }}"{% endif %}>
                                     <td class="rank-col" data-label="#">
                                         <span class="rank-badge" data-rank-value>{{ result.rank }}</span>
                                     </td>
-                                    <td class="model-col" data-label="{{ 'Model' if supports_score_modes else 'System' }}">
+                                    <td class="model-col" data-label="System">
                                         <div class="model-name">
                                             <img class="org-logo" src="{{ result.org | org_logo }}" alt="{{ result.org }}" title="{{ result.org }}">
                                             <div class="model-name-stack">
-                                                {% if supports_score_modes %}
-                                                    {% set pro_model_label %}{{ result.model }}{% if result.effort %} ({{ result.effort }}){% endif %}{% endset %}
-                                                    {% if result.details_url %}
-                                                    <a class="model-name-text model-detail-link" href="{{ result.details_url }}">{{ pro_model_label }}</a>
-                                                    {% else %}
-                                                    <span class="model-name-text">{{ pro_model_label }}</span>
-                                                    {% endif %}
-                                                    <span class="model-meta">{{ result.agent }}</span>
-                                                {% else %}
-                                                    <span class="model-name-text">{{ result.model }}</span>
-                                                {% endif %}
+                                                <span class="model-name-text">{{ result.model }}</span>
                                             </div>
                                             {% if result.open_source %}
                                             <span class="badge badge-oss" title="Open model">Open</span>
                                             {% endif %}
-                                            {% if not supports_score_modes and result.verified %}
+                                            {% if result.verified %}
                                             <span class="badge badge-verified" title="Verified">Verified</span>
                                             {% endif %}
                                         </div>
                                     </td>
-                                    <td class="resolved-col" data-label="{{ 'Success' if supports_score_modes else 'Score' }}">
-                                        {{ render_score_bar(result, leaderboard, supports_score_modes) }}
-                                    </td>
-                                    {% if supports_score_modes %}
-                                    <td class="completed-col" data-label="Completed">
-                                        <strong data-completed-value>{{ result.completed_instances }}/{{ result.score_modes.headline.total }}</strong>
-                                        <span>{{ result.timeouts }} timed out</span>
-                                    </td>
-                                    {% endif %}
-                                    <td class="org-col" data-label="Provider">
-                                        <span>{{ result.org }}</span>
-                                    </td>
-                                    {% if supports_score_modes %}
-                                    <td class="backend-col" data-label="Backend">{{ result.backend }}</td>
-                                    {% else %}
+                                    <td class="resolved-col" data-label="Score">{{ render_score_bar(result) }}</td>
+                                    <td class="org-col" data-label="Provider"><span>{{ result.org }}</span></td>
                                     <td class="date-col" data-label="Date">{{ result.date }}</td>
-                                    {% endif %}
-                                    {% if not supports_score_modes %}
                                     <td class="logs-col" data-label="Artifacts">
                                         {% if result.logs_link %}
                                         <a class="logs-link" href="{{ result.logs_link }}" target="_blank" rel="noopener noreferrer">Logs</a>
@@ -271,8 +189,8 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
                                         <span class="table-muted">N/A</span>
                                         {% endif %}
                                     </td>
-                                    {% endif %}
                                 </tr>
+                                {% endif %}
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -318,7 +236,6 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
             section_title,
             section_description,
             pro_stats,
-            true,
             version_links
         ) }}
     </div>
@@ -337,8 +254,7 @@ data-{{ mode }}-completed="{{ result.completed_instances }}/{{ result.score_mode
             legacy_config.website_subtitle,
             legacy_config.section_title,
             legacy_config.section_description,
-            legacy_stats,
-            false
+            legacy_stats
         ) }}
     </div>
     {% endif %}

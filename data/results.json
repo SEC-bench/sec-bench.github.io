@@ -5,17 +5,17 @@
       "date": "2026-05-05",
       "title": "Initial V8 + SpiderMonkey release",
       "summary": "103 V8 + 80 SpiderMonkey instances",
-      "default": false
+      "default": true
     },
     {
       "name": "260617",
       "date": "2026-06-17",
       "title": "Linux + SpiderMonkey extension",
       "summary": "103 V8 + 104 SpiderMonkey + 137 Linux instances",
-      "default": true
+      "default": false
     }
   ],
-  "default_version": "260617",
+  "default_version": "260505",
   "snapshots": {
     "260505": {
       "leaderboards": [
@@ -1030,7 +1030,7 @@
           "leaderboard": "overall",
           "instances": 183,
           "status": "available",
-          "description": "<strong>Overall</strong> aggregates V8 and Firefox into a <strong>183</strong>-instance leaderboard. Split bars show how each project contributes to the score."
+          "description": "<strong>Overall</strong> aggregates V8 and Firefox into a <strong>183</strong>-instance leaderboard."
         },
         {
           "name": "v8",
@@ -35780,7 +35780,7 @@
           "display_name": "Overall",
           "leaderboard": "overall",
           "status": "available",
-          "description": "<strong>Overall</strong> aggregates V8, Firefox, and Linux into a <strong>344</strong>-instance leaderboard. Split bars show how each project contributes to the score."
+          "description": "<strong>Overall</strong> aggregates V8, Firefox, and Linux into a <strong>344</strong>-instance leaderboard."
         },
         {
           "name": "v8",

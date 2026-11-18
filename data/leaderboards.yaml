@@ -1,5 +1,5 @@
 website_title: SEC-bench Pro
-website_subtitle: Can Language Models Solve Long-Horizon Software Security Tasks?
+website_subtitle: Can Language Models Solve Long-Horizon Vulnerability Discovery Tasks?
 
 target_tabs:
   - name: overall
@@ -7,7 +7,7 @@ target_tabs:
     leaderboard: overall
     instances: 344
     status: available
-    description: "<strong>Overall</strong> aggregates V8, Firefox, and Linux into a <strong>344</strong>-instance leaderboard. Split bars show how each project contributes to the score."
+    description: "<strong>Overall</strong> aggregates V8, Firefox, and Linux into a <strong>344</strong>-instance leaderboard."
   - name: v8
     display_name: V8
     logo: https://v8.dev/_img/v8.svg
@@ -50,8 +50,54 @@ resource_links:
     data_url: https://huggingface.co/datasets/SEC-bench/SEC-bench
     submit_url: null
 
-pro_common_footnotes:
-  - Newer results for Claude Opus and Mythos models are not available due to safeguard restrictions.
+provider_reported_results:
+  '260505':
+    - provider: OpenAI
+      backend: OpenAI
+      source_url: https://deploymentsafety.openai.com/gpt-6-2-astra-sol/gpt-6-2-astra-sol.pdf
+      models:
+        - {name: GPT-6.2 Sol, pass_at_1: 88.34}
+        - {name: GPT-6.2 Astra, pass_at_1: 86.75}
+        - {name: GPT-6 Astra, pass_at_1: 85.4}
+        - {name: GPT-6.1 Terra, pass_at_1: 83.3}
+        - {name: GPT-6.1 Sol, pass_at_1: 78.8}
+    - provider: OpenAI
+      backend: OpenAI
+      source_url: https://deploymentsafety.openai.com/gpt-6-astra/gpt-6-astra.pdf
+      models:
+        - {name: GPT-5.6 Sol, pass_at_1: 79.1}
+        - {name: GPT-6 Sol (September), pass_at_1: 66.3}
+        - {name: GPT-6 Luna (September), pass_at_1: 34.2}
+    - provider: OpenAI
+      backend: OpenAI
+      source_url: https://deploymentsafety.openai.com/gpt-6-october/gpt-6-october.pdf#page=23
+      models:
+        - {name: GPT-6 Sol (October 7), pass_at_1: 68.85}
+        - {name: GPT-6 Luna (October 7), pass_at_1: 48.50}
+    - provider: OpenAI
+      backend: OpenAI
+      source_url: https://deploymentsafety.openai.com/gpt-6-luna-october-28-2026-addendum/gpt-6-luna-october-28-2026-addendum.pdf#page=14
+      models:
+        - {name: GPT-6 Luna (October 29), pass_at_1: 51.75}
+    - provider: OpenAI
+      backend: OpenAI
+      source_url: https://deploymentsafety.openai.com/gpt-6-cyber/gpt-6-cyber.pdf
+      models:
+        - {name: GPT-6 Cyber, pass_at_1: 87.02}
+    - provider: Google DeepMind
+      backend: Google
+      source_url: https://storage.googleapis.com/deepmind-media/gemini/gemini_4_carbon_safety_report.pdf
+      models:
+        - {name: Gemini 4 Carbon, pass_at_1: 88.2}
+        - {name: Gemini 4 Argon, pass_at_1: 83.4}
+    - provider: DeepSeek
+      backend: DeepSeek
+      open_source: true
+      source_url: https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash#comparison-with-frontier-models-max-reasoning-effort
+      models:
+        - {name: DeepSeek-V4.1-Flash, pass_at_1: 62.8}
+        - {name: DeepSeek-V4-Pro, pass_at_1: 56.4}
+        - {name: DeepSeek-V4-Flash, pass_at_1: 30.9}
 
 pro_common_info_sections: &pro_common_info_sections
   - title: News

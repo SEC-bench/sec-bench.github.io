@@ -137,7 +137,9 @@ ORG_LOGOS = {
     "Anthropic": "https://avatars.githubusercontent.com/u/76263028?s=200&v=4",
     "OpenAI": "https://avatars.githubusercontent.com/u/14957082?s=200&v=4",
     "Google": "https://avatars.githubusercontent.com/u/1342004?s=200&v=4",
+    "Google DeepMind": "https://avatars.githubusercontent.com/u/1342004?s=200&v=4",
     "Gemini": "https://avatars.githubusercontent.com/u/1342004?s=200&v=4",
+    "DeepSeek": "https://github.com/deepseek-ai.png?size=80",
     "Moonshot": "https://avatars.githubusercontent.com/u/129152888?s=200&v=4",
     "Kimi": "https://avatars.githubusercontent.com/u/129152888?s=200&v=4",
     "Moonshot AI": "https://statics.moonshot.cn/moonshot-ai/assets/static/kimi-icon.ByIGCGon.webp",
@@ -642,6 +644,32 @@ def url_prefix_for_version(version_name: str, default_version: str | None) -> st
     return f"/{version_name}"
 
 
+def merge_provider_scores(leaderboards: list[dict], reports: list[dict]) -> None:
+    overall = next((board for board in leaderboards if board["name"] == "overall"), None)
+    if overall is None or not reports:
+        return
+
+    results = overall["results"]
+    for report in reports:
+        results.extend(
+            {
+                "model": model["name"],
+                "org": report["provider"],
+                "backend": report.get("backend", ""),
+                "open_source": report.get("open_source", False),
+                "resolved": model["pass_at_1"],
+                "reported": True,
+            }
+            for model in report["models"]
+        )
+
+    results.sort(key=lambda result: result["resolved"], reverse=True)
+    for rank, result in enumerate(results, 1):
+        result["rank"] = rank
+        if not result.get("reported"):
+            result["score_modes"]["headline"]["rank"] = rank
+
+
 def prepare_pro_version(
     base_site_config: dict,
     snapshot: dict,
@@ -666,6 +694,11 @@ def prepare_pro_version(
 
     apply_target_urls(site_config, url_prefix)
     attach_run_detail_urls(site_config, run_details, url_prefix)
+    attach_project_detail_urls(site_config["leaderboards"])
+    merge_provider_scores(
+        site_config["leaderboards"],
+        site_config.get("provider_reported_results", {}).get(version_name, []),
+    )
 
     return {
         "name": version_name,
@@ -811,6 +844,23 @@ def detail_url(target_name: str, slug: str, url_prefix: str = "") -> str:
     prefix = normalize_url_prefix(url_prefix)
     path = f"/{target_name}/runs/{slug}"
     return f"{prefix}{path}" if prefix else path
+
+
+def result_key(result: dict) -> tuple:
+    return tuple(result.get(field) for field in ("agent", "model", "effort", "org"))
+
+
+def attach_project_detail_urls(leaderboards: list[dict]) -> None:
+    detail_urls = {
+        (board["name"], result_key(result)): result["details_url"]
+        for board in leaderboards
+        for result in board["results"]
+        if result.get("details_url")
+    }
+    for board in leaderboards:
+        for result in board["results"]:
+            for project in result.get("projects", []):
+                project["details_url"] = detail_urls.get((project["name"], result_key(result)))
 
 
 def apply_target_urls(site_config: dict, url_prefix: str = ""):
@@ -1613,8 +1663,8 @@ def render_base_html_stdlib(
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{asset_prefix}css/core.css?v=7">
     <link rel="stylesheet" href="{asset_prefix}css/layout.css?v=18">
-    <link rel="stylesheet" href="{asset_prefix}css/components.css?v=36">
-    <link rel="stylesheet" href="{asset_prefix}css/filters.css?v=6">
+    <link rel="stylesheet" href="{asset_prefix}css/components.css?v=37">
+    <link rel="stylesheet" href="{asset_prefix}css/filters.css?v=7">
     <link rel="stylesheet" href="{asset_prefix}css/sidebar.css?v=5">
 </head>
 <body data-leaderboard-mode="pro">
@@ -1651,8 +1701,8 @@ def render_base_html_stdlib(
     </footer>
     <script src="{asset_prefix}js/dark-mode.js?v=4"></script>
     <script src="{asset_prefix}js/multiselect-dropdown.js?v=2"></script>
-    <script src="{asset_prefix}js/leaderboard.js?v=6"></script>
-    <script src="{asset_prefix}js/filters.js?v=3"></script>
+    <script src="{asset_prefix}js/leaderboard.js?v=8"></script>
+    <script src="{asset_prefix}js/filters.js?v=5"></script>
     <script src="{asset_prefix}js/footnotes.js?v=2"></script>
     <script src="{asset_prefix}js/sidebar.js?v=5"></script>
     {scripts_extra}
@@ -1668,52 +1718,16 @@ def render_stats_stdlib(stats: list[dict]) -> str:
     return f'<div class="stats-strip" aria-label="Benchmark summary">{items}</div>'
 
 
-def render_score_bar_stdlib(result: dict, leaderboard: dict, supports_score_modes: bool) -> str:
-    if not supports_score_modes:
-        score = float_value(result.get("resolved"), 0) or 0
-        return (
-            '<div class="score-cell">'
-            f'<div class="score-number">{format_percent_filter(score)}</div>'
-            f'<div class="score-count">{esc(result.get("score_label") or "SEC-bench score")}</div>'
-            '<div class="score-bar-track">'
-            f'<span class="score-bar-fill" style="width: {max(0, min(100, score))}%"></span>'
-            '</div></div>'
-        )
-
-    headline = result["score_modes"]["headline"]
-    parts = [
-        '<div class="score-cell">',
-        f'<div class="score-number" data-score-value>{esc(headline["score"])}%</div>',
-        f'<div class="score-count" data-count-value>{esc(headline["solved"])}/{esc(headline["total"])}</div>',
-    ]
-    if leaderboard.get("is_overall") and result.get("projects"):
-        parts.append('<div class="split-score-bar" aria-label="Project contribution split">')
-        for part in result["projects"]:
-            h = part["score_modes"]["headline"]
-            c = part["score_modes"]["completed"]
-            parts.append(
-                f'<span class="score-segment score-segment-{esc(part["name"])}" '
-                f'style="width: {esc(h["width"])}%" '
-                f'data-headline-width="{esc(h["width"])}" '
-                f'data-completed-width="{esc(c["width"])}" '
-                f'data-headline-title="{esc(part["label"] + ": " + h["score_label"])}" '
-                f'data-completed-title="{esc(part["label"] + ": " + c["score_label"])}" '
-                f'title="{esc(part["label"] + ": " + h["score_label"])}"></span>'
-            )
-        parts.append("</div><div class=\"split-legend\">")
-        for part in result["projects"]:
-            parts.append(
-                f'<span><i class="legend-dot score-segment-{esc(part["name"])}"></i>{esc(part["label"])}</span>'
-            )
-        parts.append("</div>")
-    else:
-        parts.append(
-            '<div class="score-bar-track">'
-            f'<span class="score-bar-fill" style="width: {esc(headline["score"])}%"></span>'
-            "</div>"
-        )
-    parts.append("</div>")
-    return "".join(parts)
+def render_score_bar_stdlib(result: dict) -> str:
+    score = float_value(result.get("resolved"), 0) or 0
+    return (
+        '<div class="score-cell">'
+        f'<div class="score-number">{format_percent_filter(score)}</div>'
+        f'<div class="score-count">{esc(result.get("score_label") or "SEC-bench score")}</div>'
+        '<div class="score-bar-track">'
+        f'<span class="score-bar-fill" style="width: {max(0, min(100, score))}%"></span>'
+        '</div></div>'
+    )
 
 
 def render_info_panels_stdlib(leaderboards: list[dict], active_leaderboard: str) -> str:
@@ -1758,6 +1772,71 @@ def render_version_tabs_stdlib(version_links: list[dict]) -> str:
     )
 
 
+def render_pro_score_row(result: dict, leaderboard: dict) -> str:
+    model = result["model"]
+    if result.get("effort"):
+        model += f' ({result["effort"]})'
+    model = esc(model)
+    provider = esc(result["org"])
+    rank = esc(result["rank"])
+    score = esc(result["resolved"])
+    display_score = f'{result["resolved"]:g}%'
+    backend = esc(result.get("backend") or "—")
+    model_type = "open-source" if result.get("open_source") else "proprietary"
+    logo = esc(org_logo_filter(result["org"]))
+    model_name = (
+        f'<img class="org-logo" src="{logo}" alt="">'
+        f'<span class="model-name-text">{model}</span>'
+    )
+
+    projects = [
+        (part["label"], part["score_modes"]["headline"]["score_label"], part.get("details_url"))
+        for part in result.get("projects", [])
+    ]
+    if not projects and result.get("details_url"):
+        projects.append((
+            leaderboard["display_name"],
+            result["score_modes"]["headline"]["score_label"],
+            result["details_url"],
+        ))
+
+    if projects:
+        project_items = []
+        for label, score_label, url in projects:
+            project_label = esc(label)
+            if url:
+                project_label = f'<a href="{esc(url)}">{project_label}</a>'
+            project_items.append(
+                f'<div><dt>{project_label}</dt><dd>{esc(score_label)}</dd></div>'
+            )
+        run_context = result["agent"]
+        if result.get("projects"):
+            headline = result["score_modes"]["headline"]
+            run_context += f' · {headline["solved"]}/{headline["total"]}'
+        model_html = f"""
+            <details class="project-disclosure">
+                <summary class="model-name">{model_name}</summary>
+                <div class="project-breakdown">
+                    <p class="model-meta">{esc(run_context)}</p>
+                    <dl class="project-results">{"".join(project_items)}</dl>
+                </div>
+            </details>"""
+    else:
+        model_html = f'<div class="model-name">{model_name}</div>'
+
+    score_title = ' title="Reported pass@1"' if result.get("reported") else ""
+    return f"""
+        <tr class="leaderboard-row" data-scored="true" data-type="{model_type}"
+            data-model="{model}" data-resolved="{score}" data-rank="{rank}"
+            data-org="{provider}" data-backend="{esc(result.get("backend"))}">
+            <td class="rank-col" data-label="#"><span class="rank-badge" data-rank-value>{rank}</span></td>
+            <td class="model-col" data-label="Model">{model_html}</td>
+            <td class="resolved-col" data-label="Success"><span class="score-number"{score_title}>{display_score}</span></td>
+            <td class="org-col" data-label="Provider">{provider}</td>
+            <td class="backend-col" data-label="Backend">{backend}</td>
+        </tr>"""
+
+
 def render_leaderboard_panel_stdlib(
     mode: str,
     leaderboards: list[dict],
@@ -1768,9 +1847,9 @@ def render_leaderboard_panel_stdlib(
     panel_section_title: str,
     panel_section_description: str,
     stats: list[dict],
-    supports_score_modes: bool,
     version_links: list[dict] | None = None,
 ) -> str:
+    is_pro = mode == "pro"
     active = default_leaderboard or (leaderboards[0]["name"] if leaderboards else "")
     tab_buttons = []
     active_description = ""
@@ -1794,16 +1873,6 @@ def render_leaderboard_panel_stdlib(
             f'{logo}<span>{esc(target.get("display_name"))}</span></button>'
         )
 
-    score_tabs = ""
-    if supports_score_modes:
-        score_tabs = f"""
-        <div class="leaderboard-view-controls">
-            <div class="score-mode-tabs" aria-label="Score basis">
-            <button type="button" class="score-mode-tab active" data-score-mode="headline" aria-pressed="true"><span>Headline</span><small>fixed budget</small></button>
-            <button type="button" class="score-mode-tab" data-score-mode="completed" aria-pressed="false"><span>Completed</span><small>within timeout</small></button>
-            </div>
-        </div>"""
-
     panels = []
     for leaderboard in leaderboards:
         lb_name = leaderboard.get("name")
@@ -1811,7 +1880,7 @@ def render_leaderboard_panel_stdlib(
         has_open = any(result.get("open_source") for result in leaderboard.get("results", []))
         has_prop = any(not result.get("open_source") for result in leaderboard.get("results", []))
         filters = ""
-        version_filter = render_version_tabs_stdlib(version_links or []) if supports_score_modes else ""
+        version_filter = render_version_tabs_stdlib(version_links or []) if is_pro else ""
         type_filter = ""
         if has_open and has_prop:
             type_filter = f"""
@@ -1826,101 +1895,58 @@ def render_leaderboard_panel_stdlib(
         if version_filter or type_filter:
             filters = f'<div class="filter-controls">{type_filter}{version_filter}</div>'
 
-        extra_headers = '<th class="completed-col sortable" data-sort="completed">Completed</th>' if supports_score_modes else ""
         backend_or_date_header = (
             '<th class="backend-col sortable" data-sort="backend">Backend</th>'
-            if supports_score_modes
+            if is_pro
             else '<th class="date-col sortable" data-sort="date">Date</th>'
         )
-        logs_header = "" if supports_score_modes else '<th class="logs-col">Artifacts</th>'
+        logs_header = "" if is_pro else '<th class="logs-col">Artifacts</th>'
         rows = []
         for result in leaderboard.get("results", []):
+            if is_pro:
+                rows.append(render_pro_score_row(result, leaderboard))
+                continue
+
             details_url = result.get("details_url")
             clickable = " leaderboard-row-clickable" if details_url else ""
-            if supports_score_modes:
-                model_label = result.get("model", "")
-                if result.get("effort"):
-                    model_label += f' ({result.get("effort")})'
-                model_data = f'{model_label} {result.get("agent", "")}'
-            else:
-                model_label = result.get("model", "")
-                model_data = model_label
-            score_value = result["score_modes"]["headline"]["score"] if supports_score_modes else result.get("resolved", 0)
+            model = esc(result.get("model"))
+            rank = esc(result.get("rank"))
+            provider = esc(result.get("org"))
             row_attrs = [
                 f'class="leaderboard-row{clickable}"',
                 'data-scored="true"',
                 f'data-type="{"open-source" if result.get("open_source") else "proprietary"}"',
-                f'data-model="{esc(model_data)}"',
-                f'data-resolved="{esc(score_value)}"',
-                f'data-rank="{esc(result.get("rank", ""))}"',
-                f'data-org="{esc(result.get("org", ""))}"',
-                f'data-date="{esc(result.get("date", ""))}"',
+                f'data-model="{model}"',
+                f'data-resolved="{esc(result.get("resolved", 0))}"',
+                f'data-rank="{rank}"',
+                f'data-org="{provider}"',
+                f'data-date="{esc(result.get("date"))}"',
             ]
-            if supports_score_modes:
-                row_attrs.append(f'data-backend="{esc(result.get("backend", ""))}"')
-                row_attrs.append(f'data-completed="{esc(result.get("completed_instances", ""))}"')
-                for mode_name in ("headline", "completed"):
-                    mode_data = result["score_modes"][mode_name]
-                    row_attrs.extend(
-                        [
-                            f'data-{mode_name}-score="{esc(mode_data["score"])}"',
-                            f'data-{mode_name}-rank="{esc(mode_data["rank"])}"',
-                            f'data-{mode_name}-score-label="{esc(mode_data["score_label"])}"',
-                            f'data-{mode_name}-count="{esc(mode_data["solved"])}/{esc(mode_data["total"])}"',
-                            f'data-{mode_name}-completed="{esc(result.get("completed_instances", ""))}/{esc(result["score_modes"]["headline"]["total"])}"',
-                        ]
-                    )
             if details_url:
-                row_attrs.append(f'data-details-url="{esc(details_url)}" tabindex="0" role="link" aria-label="View run details for {esc(model_label)}"')
-
-            if supports_score_modes:
-                name_html = (
-                    f'<a class="model-name-text model-detail-link" href="{esc(details_url)}">{esc(model_label)}</a>'
-                    if details_url
-                    else f'<span class="model-name-text">{esc(model_label)}</span>'
-                )
-                name_html += f'<span class="model-meta">{esc(result.get("agent", ""))}</span>'
-            else:
-                name_html = f'<span class="model-name-text">{esc(result.get("model"))}</span>'
+                row_attrs.append(f'data-details-url="{esc(details_url)}" tabindex="0" role="link" aria-label="View run details for {model}"')
 
             badges = ""
             if result.get("open_source"):
                 badges += '<span class="badge badge-oss" title="Open model">Open</span>'
-            if not supports_score_modes and result.get("verified"):
+            if result.get("verified"):
                 badges += '<span class="badge badge-verified" title="Verified">Verified</span>'
 
-            completed_cell = ""
-            if supports_score_modes:
-                completed_cell = (
-                    '<td class="completed-col" data-label="Completed">'
-                    f'<strong data-completed-value>{esc(result.get("completed_instances"))}/{esc(result["score_modes"]["headline"]["total"])}</strong>'
-                    f'<span>{esc(result.get("timeouts", 0))} timed out</span></td>'
-                )
-
-            logs_cell = ""
-            if not supports_score_modes:
-                if result.get("logs_link"):
-                    logs = f'<a class="logs-link" href="{esc(result["logs_link"])}" target="_blank" rel="noopener noreferrer">Logs</a>'
-                else:
-                    logs = '<span class="table-muted">N/A</span>'
-                logs_cell = f'<td class="logs-col" data-label="Artifacts">{logs}</td>'
-
-            backend_or_date_cell = (
-                f'<td class="backend-col" data-label="Backend">{esc(result.get("backend", ""))}</td>'
-                if supports_score_modes
-                else f'<td class="date-col" data-label="Date">{esc(result.get("date"))}</td>'
+            logs_url = result.get("logs_link")
+            logs = (
+                f'<a class="logs-link" href="{esc(logs_url)}" target="_blank" rel="noopener noreferrer">Logs</a>'
+                if logs_url
+                else '<span class="table-muted">N/A</span>'
             )
-
             rows.append(
                 f'<tr {" ".join(row_attrs)}>'
-                f'<td class="rank-col" data-label="#"><span class="rank-badge" data-rank-value>{esc(result.get("rank", ""))}</span></td>'
-                f'<td class="model-col" data-label="{"Model" if supports_score_modes else "System"}">'
-                '<div class="model-name">'
-                f'<img class="org-logo" src="{esc(org_logo_filter(result.get("org", "")))}" alt="{esc(result.get("org", ""))}" title="{esc(result.get("org", ""))}">'
-                f'<div class="model-name-stack">{name_html}</div>{badges}</div></td>'
-                f'<td class="resolved-col" data-label="{"Success" if supports_score_modes else "Score"}">{render_score_bar_stdlib(result, leaderboard, supports_score_modes)}</td>'
-                f'{completed_cell}<td class="org-col" data-label="Provider"><span>{esc(result.get("org"))}</span></td>'
-                f'{backend_or_date_cell}{logs_cell}</tr>'
+                f'<td class="rank-col" data-label="#"><span class="rank-badge" data-rank-value>{rank}</span></td>'
+                '<td class="model-col" data-label="System"><div class="model-name">'
+                f'<img class="org-logo" src="{esc(org_logo_filter(result.get("org", "")))}" alt="{provider}" title="{provider}">'
+                f'<div class="model-name-stack"><span class="model-name-text">{model}</span></div>{badges}</div></td>'
+                f'<td class="resolved-col" data-label="Score">{render_score_bar_stdlib(result)}</td>'
+                f'<td class="org-col" data-label="Provider"><span>{provider}</span></td>'
+                f'<td class="date-col" data-label="Date">{esc(result.get("date"))}</td>'
+                f'<td class="logs-col" data-label="Artifacts">{logs}</td></tr>'
             )
 
         static_notes = ""
@@ -1938,13 +1964,12 @@ def render_leaderboard_panel_stdlib(
         table = f"""
         {filters}
         <div class="table-container">
-            <table class="leaderboard-table" id="{esc(lb_name)}-table">
+            <table class="leaderboard-table{" pro-table" if is_pro else ""}" id="{esc(lb_name)}-table">
                 <thead>
                     <tr>
                         <th class="rank-col sortable active asc" data-sort="rank">#</th>
-                        <th class="model-col sortable" data-sort="model">{"Model" if supports_score_modes else "System"}</th>
-                        <th class="resolved-col sortable active desc" data-sort="resolved">{"Success" if supports_score_modes else "Score"}</th>
-                        {extra_headers}
+                        <th class="model-col sortable" data-sort="model">{"Model" if is_pro else "System"}</th>
+                        <th class="resolved-col sortable active desc" data-sort="resolved">{"Success" if is_pro else "Score"}</th>
                         <th class="org-col sortable" data-sort="org">Provider</th>
                         {backend_or_date_header}
                         {logs_header}
@@ -1987,7 +2012,6 @@ def render_leaderboard_panel_stdlib(
         <div class="leaderboard-shell">
             <div class="leaderboard-toolbar">
                 <div class="target-tabs" role="tablist" aria-label="{esc(panel_title)} leaderboards">{''.join(tab_buttons)}</div>
-                {score_tabs}
             </div>
             <p class="target-description" data-target-description-container>{active_description}</p>
             <div class="leaderboard-container">{''.join(panels)}</div>
@@ -2021,7 +2045,6 @@ def render_index_body_stdlib(
         section_title,
         section_description,
         pro_stats,
-        True,
         version_links or [],
     )
     classic_panel = ""
@@ -2039,7 +2062,6 @@ def render_index_body_stdlib(
                 legacy_config.get("section_title", "Leaderboard"),
                 legacy_config.get("section_description", ""),
                 legacy_stats,
-                False,
             )
             + "</div>"
         )
@@ -2554,6 +2576,42 @@ def prepare_site_data(base_dir: Path):
     }
 
 
+def write_leaderboard_aliases(dist_dir: Path, versions: list[dict]) -> None:
+    """Keep version bookmarks and target URLs usable when the default changes."""
+    default = next((version for version in versions if not version["url_prefix"]), None)
+    if len(versions) < 2 or default is None:
+        return
+
+    default_alias = dist_dir / default["name"]
+    aliases = {default_alias / "index.html": dist_dir / "index.html"}
+    for target in available_target_tabs(default["leaderboards_data"]):
+        if target["name"] != "overall":
+            for page in (dist_dir / target["name"]).rglob("index.html"):
+                aliases[default_alias / page.relative_to(dist_dir)] = page
+
+    for version in reversed(versions):
+        if version is default:
+            continue
+        version_dir = dist_dir / version["name"]
+        for target in available_target_tabs(version["leaderboards_data"]):
+            name = target["name"]
+            if name != "overall" and not (dist_dir / name).exists():
+                for page in (version_dir / name).rglob("index.html"):
+                    aliases.setdefault(dist_dir / page.relative_to(version_dir), page)
+
+    for alias, page in aliases.items():
+        parts = page.parent.relative_to(dist_dir).parts
+        url = esc(f'/{"/".join(parts)}/' if parts else "/")
+        alias.parent.mkdir(parents=True, exist_ok=True)
+        alias.write_text(
+            '<!doctype html><html lang="en"><meta charset="utf-8">'
+            '<title>SEC-bench Pro</title>'
+            f'<meta http-equiv="refresh" content="0; url={url}">'
+            f'<a href="{url}">Open SEC-bench Pro</a></html>',
+            encoding="utf-8",
+        )
+
+
 def build_site_stdlib():
     """Template-free renderer used when Jinja2 or Markdown are absent."""
     print("Building SEC-bench Pro leaderboard site with stdlib renderer...")
@@ -2705,6 +2763,8 @@ def build_site_stdlib():
                 output_file.write_text(html_text, encoding="utf-8")
                 print(f"✓ Rendered {output_file.relative_to(dist_dir)}")
 
+    write_leaderboard_aliases(dist_dir, pro_versions)
+
     citation_body, citation_script = render_citations_body_stdlib(citations_data)
     pages = {
         "contact.html": ("Contact SEC-bench Pro", render_contact_body_stdlib(), ""),
@@ -2805,6 +2865,7 @@ def build_site():
 
     # Setup Jinja2 environment
     env = Environment(loader=FileSystemLoader(templates_dir))
+    env.globals["render_pro_score_row"] = render_pro_score_row
 
     # Register custom filters
     env.filters["org_logo"] = org_logo_filter
@@ -2969,6 +3030,8 @@ def build_site():
                 output_file.parent.mkdir(parents=True, exist_ok=True)
                 output_file.write_text(html)
                 print(f"✓ Rendered {output_file.relative_to(dist_dir)}")
+
+    write_leaderboard_aliases(dist_dir, pro_versions)
 
     # Render additional pages
     additional_pages = ["citations.html", "contact.html", "submit.html"]

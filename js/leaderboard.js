@@ -1,9 +1,8 @@
 /**
- * Leaderboard tabs, score-mode switching, sorting, and detail-row navigation.
+ * Leaderboard tabs, sorting, and detail-row navigation.
  */
 
 let currentTab = null;
-let currentScoreMode = 'headline';
 let sortState = {
     column: null,
     direction: 'desc'
@@ -117,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
     currentTab = getInitialLeaderboardName();
 
     initTabs();
-    initScoreModes();
     initVersionSelects();
     initSorting();
     initRowNavigation();
@@ -125,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentTab) {
         switchTab(currentTab, { force: true, syncHash: false });
     }
-    applyScoreMode(currentScoreMode);
 });
 
 function initTabs() {
@@ -133,14 +130,6 @@ function initTabs() {
         button.addEventListener('click', () => {
             if (button.getAttribute('aria-disabled') === 'true') return;
             switchTab(button.getAttribute('data-tab'));
-        });
-    });
-}
-
-function initScoreModes() {
-    document.querySelectorAll('[data-score-mode]').forEach(button => {
-        button.addEventListener('click', () => {
-            applyScoreMode(button.getAttribute('data-score-mode'));
         });
     });
 }
@@ -206,57 +195,6 @@ function switchTab(tab, options = {}) {
     }
 
     sortTable(tab, 'resolved', { direction: 'desc' });
-}
-
-function applyScoreMode(mode) {
-    currentScoreMode = mode || 'headline';
-
-    document.querySelectorAll('[data-score-mode]').forEach(button => {
-        const active = button.getAttribute('data-score-mode') === currentScoreMode;
-        button.classList.toggle('active', active);
-        button.setAttribute('aria-pressed', String(active));
-    });
-
-    document.querySelectorAll('.leaderboard-row').forEach(row => {
-        if (!row.hasAttribute(`data-${currentScoreMode}-score`)) {
-            return;
-        }
-
-        const score = Number.parseFloat(row.getAttribute(`data-${currentScoreMode}-score`) || '0');
-        const rank = row.getAttribute(`data-${currentScoreMode}-rank`) || '';
-        const scoreLabel = row.getAttribute(`data-${currentScoreMode}-score-label`) || '';
-        const count = row.getAttribute(`data-${currentScoreMode}-count`) || '';
-
-        row.setAttribute('data-resolved', String(score));
-        row.setAttribute('data-rank', rank);
-
-        row.querySelector('[data-score-value]')?.replaceChildren(document.createTextNode(`${score}%`));
-        row.querySelector('[data-count-value]')?.replaceChildren(document.createTextNode(count));
-        row.querySelector('[data-rank-value]')?.replaceChildren(document.createTextNode(rank));
-
-        const fill = row.querySelector('.score-bar-fill');
-        if (fill) {
-            fill.style.width = `${Math.max(0, Math.min(100, score))}%`;
-        }
-
-        row.querySelectorAll('.score-segment').forEach(segment => {
-            const width = segment.getAttribute(`data-${currentScoreMode}-width`) || '0';
-            const title = segment.getAttribute(`data-${currentScoreMode}-title`);
-            segment.style.width = `${width}%`;
-            if (title) {
-                segment.setAttribute('title', title);
-            }
-        });
-
-        const scoreCell = row.querySelector('.score-cell');
-        if (scoreCell) {
-            scoreCell.setAttribute('title', scoreLabel);
-        }
-    });
-
-    if (currentTab) {
-        sortTable(currentTab, 'resolved', { direction: 'desc' });
-    }
 }
 
 function initSorting() {
@@ -332,7 +270,7 @@ function updateRankings(leaderboardName) {
         if (!rankBadge) return;
 
         if (!row.classList.contains('hidden') && row.getAttribute('data-scored') === 'true') {
-            const rank = row.getAttribute(`data-${currentScoreMode}-rank`) || row.getAttribute('data-rank') || '';
+            const rank = row.getAttribute('data-rank') || '';
             rankBadge.textContent = rank;
             rankBadge.classList.toggle('rank-1', rank === '1');
         } else {
@@ -352,7 +290,5 @@ window.leaderboard = {
     updateRankings,
     getVisibleRowCount,
     currentTab: () => currentTab,
-    currentScoreMode: () => currentScoreMode,
-    switchTab,
-    applyScoreMode
+    switchTab
 };
