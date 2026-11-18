@@ -86,6 +86,11 @@ provider_reported_results:
         - {name: GPT-6 Cyber, pass_at_1: 87.02}
     - provider: Google DeepMind
       backend: Google
+      source_url: https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/#cyber-defense
+      models:
+        - {name: Gemini 4 Neon, pass_at_1: 90.5}
+    - provider: Google DeepMind
+      backend: Google
       source_url: https://storage.googleapis.com/deepmind-media/gemini/gemini_4_carbon_safety_report.pdf
       models:
         - {name: Gemini 4 Carbon, pass_at_1: 88.2}
